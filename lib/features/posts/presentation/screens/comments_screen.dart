@@ -140,6 +140,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                             IconButton(
                               icon: const Icon(Icons.delete_outline, size: 18),
                               color: AppColors.textSecondary,
+                              tooltip: 'Supprimer',
                               onPressed: () => ref
                                   .read(commentControllerProvider.notifier)
                                   .deleteComment(widget.postId, comment.id),
@@ -185,6 +186,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.send, color: AppColors.primary),
+                    tooltip: 'Envoyer',
                     onPressed: controllerState.isLoading ? null : _send,
                   ),
                 ],

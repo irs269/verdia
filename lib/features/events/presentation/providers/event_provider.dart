@@ -11,10 +11,83 @@ final eventRepositoryProvider = Provider<EventRepository>((ref) {
   return EventRepository(SupabaseService.client);
 });
 
-final upcomingEventsProvider = FutureProvider.autoDispose<List<Event>>((ref) {
-  final currentUserId = ref.watch(currentUserProvider)?.id;
-  return ref.watch(eventRepositoryProvider).fetchUpcoming(currentUserId: currentUserId);
-});
+class EventsListState {
+  const EventsListState({
+    this.events = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  final List<Event> events;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final Object? error;
+
+  EventsListState copyWith({
+    List<Event>? events,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    Object? error,
+    bool clearError = false,
+  }) {
+    return EventsListState(
+      events: events ?? this.events,
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+final upcomingEventsProvider =
+    NotifierProvider.autoDispose<UpcomingEventsNotifier, EventsListState>(
+  UpcomingEventsNotifier.new,
+);
+
+class UpcomingEventsNotifier extends AutoDisposeNotifier<EventsListState> {
+  @override
+  EventsListState build() {
+    ref.watch(currentUserProvider);
+    Future.microtask(refresh);
+    return const EventsListState(isLoading: true);
+  }
+
+  Future<void> refresh() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final userId = ref.read(currentUserProvider)?.id;
+      final events =
+          await ref.read(eventRepositoryProvider).fetchUpcoming(currentUserId: userId);
+      state = EventsListState(events: events, hasMore: events.length >= 20);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore || state.events.isEmpty) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final userId = ref.read(currentUserProvider)?.id;
+      final more = await ref.read(eventRepositoryProvider).fetchUpcoming(
+            currentUserId: userId,
+            after: state.events.last.startsAt,
+          );
+      state = state.copyWith(
+        events: [...state.events, ...more],
+        isLoadingMore: false,
+        hasMore: more.length >= 20,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingMore: false, error: e);
+    }
+  }
+}
 
 final createEventControllerProvider =
     AsyncNotifierProvider.autoDispose<CreateEventController, void>(

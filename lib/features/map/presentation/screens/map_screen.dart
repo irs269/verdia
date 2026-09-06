@@ -25,20 +25,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final actionsAsync = ref.watch(actionsListProvider);
-    final eventsAsync = ref.watch(upcomingEventsProvider);
-    final reportsAsync = ref.watch(reportsListProvider);
+    final actionsState = ref.watch(actionsListProvider);
+    final eventsState = ref.watch(upcomingEventsProvider);
+    final reportsState = ref.watch(reportsListProvider);
     final categoriesAsync = ref.watch(actionCategoriesProvider);
 
-    final actions = (actionsAsync.valueOrNull ?? [])
+    final actions = actionsState.actions
         .where((a) => a.lat != null && a.lng != null)
         .where((a) => _filter == 'all' || a.category.code == _filter)
         .toList();
     final events = (_filter == 'all' || _filter == 'events')
-        ? (eventsAsync.valueOrNull ?? [])
+        ? eventsState.events
         : <Event>[];
     final reports = (_filter == 'all' || _filter == 'reports')
-        ? (reportsAsync.valueOrNull ?? [])
+        ? reportsState.reports
         : <EnvironmentalReport>[];
 
     final markers = <Marker>[

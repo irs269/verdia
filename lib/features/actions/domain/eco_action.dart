@@ -16,6 +16,7 @@ class EcoAction {
     required this.occurredAt,
     required this.status,
     this.impactPoints,
+    required this.createdAt,
   });
 
   factory EcoAction.fromMap(Map<String, dynamic> map) {
@@ -37,6 +38,7 @@ class EcoAction {
       impactPoints: (impactPointsList != null && impactPointsList.isNotEmpty)
           ? impactPointsList.first['points'] as int
           : null,
+      createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
 
@@ -54,6 +56,7 @@ class EcoAction {
   final DateTime occurredAt;
   final String status;
   final int? impactPoints;
+  final DateTime createdAt;
 
   String? get quantityLabel {
     if (quantity == null) return null;

@@ -138,6 +138,7 @@ class PostCard extends StatelessWidget {
                 icon: post.isLikedByMe ? Icons.favorite : Icons.favorite_border,
                 color: post.isLikedByMe ? Colors.redAccent : AppColors.textSecondary,
                 label: '${post.likeCount}',
+                semanticLabel: post.isLikedByMe ? 'Ne plus aimer' : 'Aimer',
                 onTap: onToggleLike,
               ),
               const SizedBox(width: AppSpacing.lg),
@@ -145,12 +146,14 @@ class PostCard extends StatelessWidget {
                 icon: Icons.mode_comment_outlined,
                 color: AppColors.textSecondary,
                 label: '${post.commentCount}',
+                semanticLabel: 'Commenter',
                 onTap: () => context.push('/posts/${post.id}/comments'),
               ),
               const SizedBox(width: AppSpacing.lg),
               _ActionIcon(
                 icon: Icons.share_outlined,
                 color: AppColors.textSecondary,
+                semanticLabel: 'Partager',
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Bientôt disponible 🌱')),
                 ),
@@ -161,6 +164,7 @@ class PostCard extends StatelessWidget {
                   post.isSavedByMe ? Icons.bookmark : Icons.bookmark_border,
                   color: post.isSavedByMe ? AppColors.primary : AppColors.textSecondary,
                 ),
+                tooltip: post.isSavedByMe ? 'Retirer des enregistrements' : 'Enregistrer',
                 onPressed: onToggleSave,
               ),
             ],
@@ -207,29 +211,34 @@ class _ActionIcon extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    required this.semanticLabel,
     this.label,
   });
 
   final IconData icon;
   final Color color;
   final String? label;
+  final String semanticLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: color),
-            if (label != null) ...[
-              const SizedBox(width: 4),
-              Text(label!, style: TextStyle(color: color, fontSize: 13)),
+    return Tooltip(
+      message: semanticLabel,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: color),
+              if (label != null) ...[
+                const SizedBox(width: 4),
+                Text(label!, style: TextStyle(color: color, fontSize: 13)),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

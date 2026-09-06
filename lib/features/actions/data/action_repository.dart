@@ -9,10 +9,12 @@ import '../domain/eco_action.dart';
 
 const _actionSelect = '''
   id, title, description, quantity, quantity_unit, participants_count,
-  city, country, lat, lng, occurred_at, status,
+  city, country, lat, lng, occurred_at, status, created_at,
   action_categories(id, code, label, icon, color),
   impact_points(points)
 ''';
+
+const _actionsPageSize = 20;
 
 class ActionRepository {
   ActionRepository(this._client);
@@ -57,7 +59,7 @@ class ActionRepository {
       if (before != null) {
         query = query.lt('created_at', before.toIso8601String());
       }
-      final data = await query.order('created_at', ascending: false).limit(20);
+      final data = await query.order('created_at', ascending: false).limit(_actionsPageSize);
       return (data as List)
           .map((e) => EcoAction.fromMap(e as Map<String, dynamic>))
           .toList();

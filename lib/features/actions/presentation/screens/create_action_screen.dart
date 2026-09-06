@@ -136,6 +136,7 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
         title: const Text('Créer une action'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Retour',
           onPressed: () {
             if (_step == 0) {
               context.pop();

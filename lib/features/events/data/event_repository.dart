@@ -14,20 +14,23 @@ const _eventSelect = '''
   event_participants(profile_id)
 ''';
 
+const _eventsPageSize = 20;
+
 class EventRepository {
   EventRepository(this._client);
 
   final SupabaseClient _client;
   final _uuid = const Uuid();
 
-  Future<List<Event>> fetchUpcoming({String? currentUserId}) async {
+  Future<List<Event>> fetchUpcoming({String? currentUserId, DateTime? after}) async {
     try {
-      final data = await _client
-          .from('events')
-          .select(_eventSelect)
-          .neq('status', 'cancelled')
-          .order('starts_at')
-          .limit(30);
+      var query = _client.from('events').select(_eventSelect).neq('status', 'cancelled');
+
+      if (after != null) {
+        query = query.gt('starts_at', after.toIso8601String());
+      }
+
+      final data = await query.order('starts_at').limit(_eventsPageSize);
       return (data as List)
           .map((e) => Event.fromMap(e as Map<String, dynamic>, currentUserId: currentUserId))
           .toList();

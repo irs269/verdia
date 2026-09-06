@@ -10,18 +10,21 @@ const _challengeSelect = '''
   challenge_participants(profile_id)
 ''';
 
+const _challengesPageSize = 20;
+
 class ChallengeRepository {
   ChallengeRepository(this._client);
 
   final SupabaseClient _client;
 
-  Future<List<Challenge>> fetchActive({String? currentUserId}) async {
+  Future<List<Challenge>> fetchActive({String? currentUserId, DateTime? after}) async {
     try {
-      final data = await _client
+      var query = _client
           .from('challenges')
           .select(_challengeSelect)
-          .gt('ends_at', DateTime.now().toIso8601String())
-          .order('ends_at');
+          .gt('ends_at', (after ?? DateTime.now()).toIso8601String());
+
+      final data = await query.order('ends_at').limit(_challengesPageSize);
       return (data as List)
           .map((e) => Challenge.fromMap(e as Map<String, dynamic>, currentUserId: currentUserId))
           .toList();

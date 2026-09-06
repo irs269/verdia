@@ -6,19 +6,24 @@ import 'package:uuid/uuid.dart';
 import '../../../core/errors/app_exception.dart';
 import '../domain/environmental_report.dart';
 
+const _reportsPageSize = 20;
+
 class ReportRepository {
   ReportRepository(this._client);
 
   final SupabaseClient _client;
   final _uuid = const Uuid();
 
-  Future<List<EnvironmentalReport>> fetchReports() async {
+  Future<List<EnvironmentalReport>> fetchReports({DateTime? before}) async {
     try {
-      final data = await _client
-          .from('environmental_reports')
-          .select()
-          .order('created_at', ascending: false)
-          .limit(50);
+      var query = _client.from('environmental_reports').select();
+
+      if (before != null) {
+        query = query.lt('created_at', before.toIso8601String());
+      }
+
+      final data =
+          await query.order('created_at', ascending: false).limit(_reportsPageSize);
       return (data as List)
           .map((e) => EnvironmentalReport.fromMap(e as Map<String, dynamic>))
           .toList();

@@ -32,10 +32,12 @@ class FeedScreen extends ConsumerWidget {
           actions: [
             IconButton(
               onPressed: () => context.push('/search'),
+              tooltip: 'Rechercher',
               icon: const Icon(Icons.search),
             ),
             IconButton(
               onPressed: () => context.push('/notifications'),
+              tooltip: 'Notifications',
               icon: Badge(
                 label: Text('$unreadCount'),
                 isLabelVisible: unreadCount > 0,

@@ -44,45 +44,156 @@ class ActionsListScreen extends StatelessWidget {
   }
 }
 
-class _ActionsTab extends ConsumerWidget {
+/// Un `ListView` scrollable (même pour l'état vide) est nécessaire pour que
+/// le tiré-pour-rafraîchir marche : ces onglets restent vivants en
+/// arrière-plan (`TabBarView` les garde en cache), donc c'est le seul moyen
+/// de voir apparaître un élément publié pendant que l'onglet vide était déjà
+/// affiché, sans redémarrer l'appli — même bug que sur le fil (Phase 10).
+Widget _refreshableEmpty({required Future<void> Function() onRefresh, required String message}) {
+  return RefreshIndicator(
+    onRefresh: onRefresh,
+    child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 120),
+        Center(child: Text(message, style: const TextStyle(color: AppColors.textSecondary))),
+      ],
+    ),
+  );
+}
+
+class _ActionsTab extends ConsumerStatefulWidget {
   const _ActionsTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final actionsAsync = ref.watch(actionsListProvider);
+  ConsumerState<_ActionsTab> createState() => _ActionsTabState();
+}
 
-    return actionsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text(error.toString())),
-      data: (actions) {
-        if (actions.isEmpty) {
-          return const Center(
-            child: Text(
-              "Aucune action près de vous pour l'instant.",
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(actionsListProvider),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: actions.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (context, index) => ActionTile(action: actions[index]),
-          ),
-        );
-      },
+class _ActionsTabState extends ConsumerState<_ActionsTab> with AutomaticKeepAliveClientMixin {
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >
+          _scrollController.position.maxScrollExtent - 200) {
+        ref.read(actionsListProvider.notifier).loadMore();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final state = ref.watch(actionsListProvider);
+    final notifier = ref.read(actionsListProvider.notifier);
+
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.error != null && state.actions.isEmpty) {
+      return Center(child: Text(state.error.toString()));
+    }
+    if (state.actions.isEmpty) {
+      return _refreshableEmpty(
+        onRefresh: notifier.refresh,
+        message: "Aucune action près de vous pour l'instant.",
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: notifier.refresh,
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        itemCount: state.actions.length + (state.hasMore ? 1 : 0),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (context, index) {
+          if (index >= state.actions.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return ActionTile(action: state.actions[index]);
+        },
+      ),
     );
   }
 }
 
-class _EventsTab extends ConsumerWidget {
+class _EventsTab extends ConsumerStatefulWidget {
   const _EventsTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final eventsAsync = ref.watch(upcomingEventsProvider);
+  ConsumerState<_EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends ConsumerState<_EventsTab> with AutomaticKeepAliveClientMixin {
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >
+          _scrollController.position.maxScrollExtent - 200) {
+        ref.read(upcomingEventsProvider.notifier).loadMore();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final state = ref.watch(upcomingEventsProvider);
+    final notifier = ref.read(upcomingEventsProvider.notifier);
+
+    Widget body;
+    if (state.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (state.error != null && state.events.isEmpty) {
+      body = Center(child: Text(state.error.toString()));
+    } else if (state.events.isEmpty) {
+      body = _refreshableEmpty(onRefresh: notifier.refresh, message: 'Aucun événement prévu.');
+    } else {
+      body = RefreshIndicator(
+        onRefresh: notifier.refresh,
+        child: ListView.separated(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: state.events.length + (state.hasMore ? 1 : 0),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+          itemBuilder: (context, index) {
+            if (index >= state.events.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return EventCard(event: state.events[index]);
+          },
+        ),
+      );
+    }
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -91,39 +202,75 @@ class _EventsTab extends ConsumerWidget {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Événement', style: TextStyle(color: Colors.white)),
       ),
-      body: eventsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (events) {
-          if (events.isEmpty) {
-            return const Center(
-              child: Text(
-                'Aucun événement prévu.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(upcomingEventsProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: events.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) => EventCard(event: events[index]),
-            ),
-          );
-        },
-      ),
+      body: body,
     );
   }
 }
 
-class _ChallengesTab extends ConsumerWidget {
+class _ChallengesTab extends ConsumerStatefulWidget {
   const _ChallengesTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final challengesAsync = ref.watch(activeChallengesProvider);
+  ConsumerState<_ChallengesTab> createState() => _ChallengesTabState();
+}
+
+class _ChallengesTabState extends ConsumerState<_ChallengesTab>
+    with AutomaticKeepAliveClientMixin {
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >
+          _scrollController.position.maxScrollExtent - 200) {
+        ref.read(activeChallengesProvider.notifier).loadMore();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final state = ref.watch(activeChallengesProvider);
+    final notifier = ref.read(activeChallengesProvider.notifier);
+
+    Widget body;
+    if (state.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (state.error != null && state.challenges.isEmpty) {
+      body = Center(child: Text(state.error.toString()));
+    } else if (state.challenges.isEmpty) {
+      body = _refreshableEmpty(onRefresh: notifier.refresh, message: 'Aucun défi en cours.');
+    } else {
+      body = RefreshIndicator(
+        onRefresh: notifier.refresh,
+        child: ListView.separated(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: state.challenges.length + (state.hasMore ? 1 : 0),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+          itemBuilder: (context, index) {
+            if (index >= state.challenges.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return ChallengeCard(challenge: state.challenges[index]);
+          },
+        ),
+      );
+    }
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -132,39 +279,77 @@ class _ChallengesTab extends ConsumerWidget {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Défi', style: TextStyle(color: Colors.white)),
       ),
-      body: challengesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (challenges) {
-          if (challenges.isEmpty) {
-            return const Center(
-              child: Text(
-                'Aucun défi en cours.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(activeChallengesProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: challenges.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) => ChallengeCard(challenge: challenges[index]),
-            ),
-          );
-        },
-      ),
+      body: body,
     );
   }
 }
 
-class _ReportsTab extends ConsumerWidget {
+class _ReportsTab extends ConsumerStatefulWidget {
   const _ReportsTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final reportsAsync = ref.watch(reportsListProvider);
+  ConsumerState<_ReportsTab> createState() => _ReportsTabState();
+}
+
+class _ReportsTabState extends ConsumerState<_ReportsTab> with AutomaticKeepAliveClientMixin {
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >
+          _scrollController.position.maxScrollExtent - 200) {
+        ref.read(reportsListProvider.notifier).loadMore();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final state = ref.watch(reportsListProvider);
+    final notifier = ref.read(reportsListProvider.notifier);
+
+    Widget body;
+    if (state.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (state.error != null && state.reports.isEmpty) {
+      body = Center(child: Text(state.error.toString()));
+    } else if (state.reports.isEmpty) {
+      body = _refreshableEmpty(
+        onRefresh: notifier.refresh,
+        message: 'Aucun signalement pour le moment.',
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: notifier.refresh,
+        child: ListView.separated(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: state.reports.length + (state.hasMore ? 1 : 0),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (context, index) {
+            if (index >= state.reports.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return ReportTile(report: state.reports[index]);
+          },
+        ),
+      );
+    }
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -173,29 +358,7 @@ class _ReportsTab extends ConsumerWidget {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Signaler', style: TextStyle(color: Colors.white)),
       ),
-      body: reportsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (reports) {
-          if (reports.isEmpty) {
-            return const Center(
-              child: Text(
-                'Aucun signalement pour le moment.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(reportsListProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: reports.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) => ReportTile(report: reports[index]),
-            ),
-          );
-        },
-      ),
+      body: body,
     );
   }
 }

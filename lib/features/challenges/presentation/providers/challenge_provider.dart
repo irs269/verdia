@@ -9,10 +9,83 @@ final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
   return ChallengeRepository(SupabaseService.client);
 });
 
-final activeChallengesProvider = FutureProvider.autoDispose<List<Challenge>>((ref) {
-  final currentUserId = ref.watch(currentUserProvider)?.id;
-  return ref.watch(challengeRepositoryProvider).fetchActive(currentUserId: currentUserId);
-});
+class ChallengesListState {
+  const ChallengesListState({
+    this.challenges = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  final List<Challenge> challenges;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final Object? error;
+
+  ChallengesListState copyWith({
+    List<Challenge>? challenges,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    Object? error,
+    bool clearError = false,
+  }) {
+    return ChallengesListState(
+      challenges: challenges ?? this.challenges,
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+final activeChallengesProvider =
+    NotifierProvider.autoDispose<ActiveChallengesNotifier, ChallengesListState>(
+  ActiveChallengesNotifier.new,
+);
+
+class ActiveChallengesNotifier extends AutoDisposeNotifier<ChallengesListState> {
+  @override
+  ChallengesListState build() {
+    ref.watch(currentUserProvider);
+    Future.microtask(refresh);
+    return const ChallengesListState(isLoading: true);
+  }
+
+  Future<void> refresh() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final userId = ref.read(currentUserProvider)?.id;
+      final challenges =
+          await ref.read(challengeRepositoryProvider).fetchActive(currentUserId: userId);
+      state = ChallengesListState(challenges: challenges, hasMore: challenges.length >= 20);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore || state.challenges.isEmpty) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final userId = ref.read(currentUserProvider)?.id;
+      final more = await ref.read(challengeRepositoryProvider).fetchActive(
+            currentUserId: userId,
+            after: state.challenges.last.endsAt,
+          );
+      state = state.copyWith(
+        challenges: [...state.challenges, ...more],
+        isLoadingMore: false,
+        hasMore: more.length >= 20,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingMore: false, error: e);
+    }
+  }
+}
 
 final createChallengeControllerProvider =
     AsyncNotifierProvider.autoDispose<CreateChallengeController, void>(

@@ -27,6 +27,7 @@ Map<String, dynamic> _actionMap({
     'lng': null,
     'occurred_at': '2026-09-05',
     'status': 'verified',
+    'created_at': '2026-09-05T10:00:00Z',
     'action_categories': _categoryMap(),
     'impact_points': impactPoints ?? [],
   };

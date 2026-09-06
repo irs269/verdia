@@ -11,9 +11,78 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
   return ReportRepository(SupabaseService.client);
 });
 
-final reportsListProvider = FutureProvider.autoDispose<List<EnvironmentalReport>>((ref) {
-  return ref.watch(reportRepositoryProvider).fetchReports();
-});
+class ReportsListState {
+  const ReportsListState({
+    this.reports = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  final List<EnvironmentalReport> reports;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final Object? error;
+
+  ReportsListState copyWith({
+    List<EnvironmentalReport>? reports,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    Object? error,
+    bool clearError = false,
+  }) {
+    return ReportsListState(
+      reports: reports ?? this.reports,
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
+final reportsListProvider =
+    NotifierProvider.autoDispose<ReportsListNotifier, ReportsListState>(
+  ReportsListNotifier.new,
+);
+
+class ReportsListNotifier extends AutoDisposeNotifier<ReportsListState> {
+  @override
+  ReportsListState build() {
+    Future.microtask(refresh);
+    return const ReportsListState(isLoading: true);
+  }
+
+  Future<void> refresh() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final reports = await ref.read(reportRepositoryProvider).fetchReports();
+      state = ReportsListState(reports: reports, hasMore: reports.length >= 20);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore || state.reports.isEmpty) return;
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final more = await ref
+          .read(reportRepositoryProvider)
+          .fetchReports(before: state.reports.last.createdAt);
+      state = state.copyWith(
+        reports: [...state.reports, ...more],
+        isLoadingMore: false,
+        hasMore: more.length >= 20,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoadingMore: false, error: e);
+    }
+  }
+}
 
 final createReportControllerProvider =
     AsyncNotifierProvider.autoDispose<CreateReportController, void>(

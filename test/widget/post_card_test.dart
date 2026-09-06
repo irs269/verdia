@@ -46,6 +46,7 @@ EcoAction _fixtureAction() {
     occurredAt: DateTime.now(),
     status: 'verified',
     impactPoints: 30,
+    createdAt: DateTime.now(),
   );
 }
 
