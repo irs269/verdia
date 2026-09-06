@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
@@ -15,9 +16,22 @@ class OrganizationDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final organizationAsync = ref.watch(organizationByIdProvider(organizationId));
+    final isOwner = ref.watch(isOrganizationOwnerProvider(organizationId)).valueOrNull ?? false;
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          if (isOwner)
+            organizationAsync.maybeWhen(
+              data: (org) => IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Modifier',
+                onPressed: () => context.push('/organizations/$organizationId/edit', extra: org),
+              ),
+              orElse: () => const SizedBox.shrink(),
+            ),
+        ],
+      ),
       body: organizationAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(

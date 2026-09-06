@@ -9,7 +9,7 @@ import '../domain/eco_action.dart';
 
 const _actionSelect = '''
   id, title, description, quantity, quantity_unit, participants_count,
-  city, country, lat, lng, occurred_at, status, created_at,
+  city, country, lat, lng, occurred_at, status, created_at, location_verified,
   action_categories(id, code, label, icon, color),
   impact_points(points)
 ''';
@@ -90,7 +90,11 @@ class ActionRepository {
 
   /// Crée l'action, l'auteur comme premier participant, la publication
   /// associée et ses médias. Le statut est 'verified' par défaut pour ce
-  /// MVP (validation simple) — le trigger serveur attribue les points.
+  /// MVP (validation simple) — le trigger serveur attribue les points ; un
+  /// modérateur peut ensuite le faire passer à 'rejected' via
+  /// [moderateAction]. [avantBytes]/[apresBytes] sont taguées `label` dans
+  /// `post_media` (migration 0015) et uploadées avant la galerie générale
+  /// pour que leur `position` (0, puis 1) soit stable.
   Future<void> createAction({
     required String authorId,
     required String categoryId,
@@ -103,6 +107,12 @@ class ActionRepository {
     String? country,
     double? lat,
     double? lng,
+    required DateTime occurredAt,
+    double? deviceLat,
+    double? deviceLng,
+    bool locationVerified = false,
+    Uint8List? avantBytes,
+    Uint8List? apresBytes,
     required List<Uint8List> mediaBytes,
   }) async {
     try {
@@ -120,6 +130,10 @@ class ActionRepository {
             'country': country,
             'lat': lat,
             'lng': lng,
+            'occurred_at': occurredAt.toIso8601String(),
+            'device_lat': deviceLat,
+            'device_lng': deviceLng,
+            'location_verified': locationVerified,
           })
           .select('id')
           .single();
@@ -142,11 +156,11 @@ class ActionRepository {
           .single();
       final postId = post['id'] as String;
 
-      for (var i = 0; i < mediaBytes.length; i++) {
+      Future<void> uploadMedia(Uint8List bytes, int position, {String? label}) async {
         final path = '$authorId/${_uuid.v4()}.jpg';
         await _client.storage.from('post-media').uploadBinary(
               path,
-              mediaBytes[i],
+              bytes,
               fileOptions: const FileOptions(contentType: 'image/jpeg'),
             );
         final url = _client.storage.from('post-media').getPublicUrl(path);
@@ -154,11 +168,69 @@ class ActionRepository {
           'post_id': postId,
           'url': url,
           'type': 'image',
-          'position': i,
+          'position': position,
+          'label': label,
         });
+      }
+
+      var position = 0;
+      if (avantBytes != null) await uploadMedia(avantBytes, position++, label: 'avant');
+      if (apresBytes != null) await uploadMedia(apresBytes, position++, label: 'apres');
+      for (final bytes in mediaBytes) {
+        await uploadMedia(bytes, position++);
       }
     } catch (_) {
       throw const AppException("La création de l'action a échoué. Réessaie.");
+    }
+  }
+
+  /// Réservé aux modérateurs (policy "Moderators can moderate any action",
+  /// migration 0015) : fait évoluer le statut d'une action qui n'est pas la
+  /// leur. Le trigger `revoke_action_points` retire automatiquement les
+  /// points déjà crédités si le nouveau statut est 'rejected'. `notes` est
+  /// journalisé dans `moderation_actions` pour traçabilité.
+  Future<void> moderateAction({
+    required String actionId,
+    required String moderatorId,
+    required String status,
+    String? notes,
+    String? reportId,
+  }) async {
+    try {
+      await _client.from('actions').update({'status': status}).eq('id', actionId);
+      if (reportId != null) {
+        await _client.from('moderation_actions').insert({
+          'report_id': reportId,
+          'moderator_id': moderatorId,
+          'action': status == 'rejected' ? 'content_removed' : 'no_action',
+          'notes': notes,
+        });
+      }
+    } catch (_) {
+      throw const AppException('La modération a échoué.');
+    }
+  }
+
+  /// Somme de `quantity` groupée par unité (kg, arbres, ...) pour les actions
+  /// vérifiées d'un utilisateur — contrairement à [fetchUserActionCounts]
+  /// (nombre d'actions), ceci reflète la quantité réelle déclarée.
+  Future<Map<String, double>> fetchUserQuantityTotals(String profileId) async {
+    try {
+      final data = await _client
+          .from('actions')
+          .select('quantity, quantity_unit')
+          .eq('author_id', profileId)
+          .eq('status', 'verified')
+          .not('quantity', 'is', null);
+      final totals = <String, double>{};
+      for (final row in data as List) {
+        final unit = row['quantity_unit'] as String? ?? 'unités';
+        final qty = (row['quantity'] as num).toDouble();
+        totals[unit] = (totals[unit] ?? 0) + qty;
+      }
+      return totals;
+    } catch (_) {
+      return {};
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../providers/action_provider.dart';
 
@@ -15,6 +16,7 @@ class ImpactSummaryRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(actionCategoriesProvider);
     final countsAsync = ref.watch(userActionCountsProvider(profileId));
+    final totalsAsync = ref.watch(userQuantityTotalsProvider(profileId));
 
     return categoriesAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -29,23 +31,46 @@ class ImpactSummaryRow extends ConsumerWidget {
               .toList();
           if (entries.isEmpty) return const SizedBox.shrink();
 
-          return Wrap(
-            alignment: WrapAlignment.center,
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: entries.map((entry) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: entry.key.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                ),
-                child: Text(
-                  '${entry.key.icon} ${entry.value}',
-                  style: TextStyle(color: entry.key.color, fontWeight: FontWeight.w600),
-                ),
-              );
-            }).toList(),
+          return Column(
+            children: [
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: entries.map((entry) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: entry.key.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                    ),
+                    child: Text(
+                      '${entry.key.icon} ${entry.value}',
+                      style: TextStyle(color: entry.key.color, fontWeight: FontWeight.w600),
+                    ),
+                  );
+                }).toList(),
+              ),
+              totalsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (totals) {
+                  if (totals.isEmpty) return const SizedBox.shrink();
+                  final formatted = totals.entries.map((e) {
+                    final value =
+                        e.value == e.value.roundToDouble() ? e.value.toInt().toString() : e.value.toString();
+                    return '$value ${e.key}';
+                  }).join(' · ');
+                  return Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: Text(
+                      formatted,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                  );
+                },
+              ),
+            ],
           );
         },
       ),

@@ -2,8 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -24,6 +26,11 @@ class CreateActionScreen extends ConsumerStatefulWidget {
 class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
   static const _stepLabels = ['Type', 'Détails', 'Publication'];
 
+  /// Au-delà de cette distance (en mètres) entre le repère choisi sur la
+  /// carte et la position GPS réelle de l'appareil, la position n'est pas
+  /// considérée comme vérifiée (mais la publication n'est jamais bloquée).
+  static const _locationVerificationThresholdMeters = 500.0;
+
   int _step = 0;
   ActionCategory? _category;
 
@@ -34,7 +41,16 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
   final _quantityController = TextEditingController();
   final _participantsController = TextEditingController(text: '1');
   final List<Uint8List> _picked = [];
+  Uint8List? _avantPhoto;
+  Uint8List? _apresPhoto;
   LatLng? _location;
+
+  DateTime _date = DateTime.now();
+  TimeOfDay _time = TimeOfDay.now();
+
+  bool _locatingDevice = false;
+  bool _locationVerified = false;
+  Position? _devicePosition;
 
   int _estimatedPoints = 0;
 
@@ -58,9 +74,76 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
     });
   }
 
+  Future<void> _pickSingle(ValueChanged<Uint8List> onPicked) async {
+    final image =
+        await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+    if (image == null) return;
+    onPicked(await image.readAsBytes());
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(context: context, initialTime: _time);
+    if (picked != null) setState(() => _time = picked);
+  }
+
   Future<void> _pickLocation() async {
     final picked = await context.push<LatLng>('/map/pick-location', extra: _location);
-    if (picked != null) setState(() => _location = picked);
+    if (picked == null) return;
+    setState(() {
+      _location = picked;
+      _devicePosition = null;
+      _locationVerified = false;
+    });
+    await _verifyDeviceLocation(picked);
+  }
+
+  /// Best-effort : n'importe quel échec (permission refusée, service de
+  /// localisation désactivé, timeout) laisse simplement la position non
+  /// vérifiée — ne bloque jamais la publication.
+  Future<void> _verifyDeviceLocation(LatLng picked) async {
+    setState(() => _locatingDevice = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        picked.latitude,
+        picked.longitude,
+      );
+      if (!mounted) return;
+      setState(() {
+        _devicePosition = position;
+        _locationVerified = distance <= _locationVerificationThresholdMeters;
+      });
+    } catch (_) {
+      // Position indisponible/refusée : pas de badge, publication inchangée.
+    } finally {
+      if (mounted) setState(() => _locatingDevice = false);
+    }
   }
 
   Future<void> _goToPreview() async {
@@ -79,6 +162,8 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
 
   Future<void> _publish() async {
     final quantity = double.tryParse(_quantityController.text.replaceAll(',', '.'));
+    final occurredAt =
+        DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
     final success = await ref.read(createActionControllerProvider.notifier).publish(
           categoryId: _category!.id,
           title: _titleController.text.trim(),
@@ -89,6 +174,12 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
           city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
           lat: _location?.latitude,
           lng: _location?.longitude,
+          occurredAt: occurredAt,
+          deviceLat: _devicePosition?.latitude,
+          deviceLng: _devicePosition?.longitude,
+          locationVerified: _locationVerified,
+          avantBytes: _avantPhoto,
+          apresBytes: _apresPhoto,
           mediaBytes: _picked,
         );
     if (success && mounted) context.pop();
@@ -200,8 +291,18 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
                       quantityLabel: _quantityLabelFor(_category?.code),
                       picked: _picked,
                       onPickImages: _pickImages,
+                      avantPhoto: _avantPhoto,
+                      apresPhoto: _apresPhoto,
+                      onPickAvant: () => _pickSingle((b) => setState(() => _avantPhoto = b)),
+                      onPickApres: () => _pickSingle((b) => setState(() => _apresPhoto = b)),
                       location: _location,
                       onPickLocation: _pickLocation,
+                      locatingDevice: _locatingDevice,
+                      locationVerified: _locationVerified,
+                      date: _date,
+                      time: _time,
+                      onPickDate: _pickDate,
+                      onPickTime: _pickTime,
                     ),
                   _ => _PreviewStep(
                       category: _category!,
@@ -309,8 +410,18 @@ class _DetailsStep extends StatelessWidget {
     required this.quantityLabel,
     required this.picked,
     required this.onPickImages,
+    required this.avantPhoto,
+    required this.apresPhoto,
+    required this.onPickAvant,
+    required this.onPickApres,
     required this.location,
     required this.onPickLocation,
+    required this.locatingDevice,
+    required this.locationVerified,
+    required this.date,
+    required this.time,
+    required this.onPickDate,
+    required this.onPickTime,
   });
 
   final GlobalKey<FormState> formKey;
@@ -322,8 +433,18 @@ class _DetailsStep extends StatelessWidget {
   final String quantityLabel;
   final List<Uint8List> picked;
   final VoidCallback onPickImages;
+  final Uint8List? avantPhoto;
+  final Uint8List? apresPhoto;
+  final VoidCallback onPickAvant;
+  final VoidCallback onPickApres;
   final LatLng? location;
   final VoidCallback onPickLocation;
+  final bool locatingDevice;
+  final bool locationVerified;
+  final DateTime date;
+  final TimeOfDay time;
+  final VoidCallback onPickDate;
+  final VoidCallback onPickTime;
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +469,26 @@ class _DetailsStep extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           AppTextField(label: 'Lieu', hint: 'Moroni', controller: cityController),
           const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _PickerField(
+                  label: 'Date',
+                  value: DateFormat('d MMM yyyy', 'fr_FR').format(date),
+                  onTap: onPickDate,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _PickerField(
+                  label: 'Heure',
+                  value: time.format(context),
+                  onTap: onPickTime,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           Text('Position sur la carte (optionnel)', style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 8),
           InkWell(
@@ -370,6 +511,45 @@ class _DetailsStep extends StatelessWidget {
               ),
             ),
           ),
+          if (location != null) ...[
+            const SizedBox(height: 6),
+            if (locatingDevice)
+              const Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 6),
+                  Text('Vérification de ta position...',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              )
+            else if (locationVerified)
+              const Row(
+                children: [
+                  Icon(Icons.verified, size: 14, color: AppColors.primary),
+                  SizedBox(width: 4),
+                  Text('Position vérifiée par GPS',
+                      style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                ],
+              ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          Text('Photos avant / après (optionnel)', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _PhotoSlot(label: 'Avant', bytes: avantPhoto, onTap: onPickAvant),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _PhotoSlot(label: 'Après', bytes: apresPhoto, onTap: onPickApres),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
@@ -391,6 +571,8 @@ class _DetailsStep extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          Text('Autres photos (optionnel)', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
@@ -416,6 +598,76 @@ class _DetailsStep extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PickerField extends StatelessWidget {
+  const _PickerField({required this.label, required this.value, required this.onTap});
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoSlot extends StatelessWidget {
+  const _PhotoSlot({required this.label, required this.bytes, required this.onTap});
+
+  final String label;
+  final Uint8List? bytes;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          child: bytes != null
+              ? Image.memory(bytes!, fit: BoxFit.cover)
+              : Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_a_photo_outlined, color: AppColors.textSecondary),
+                      const SizedBox(height: 4),
+                      Text(label,
+                          style:
+                              const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+        ),
       ),
     );
   }

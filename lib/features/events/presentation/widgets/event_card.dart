@@ -109,6 +109,18 @@ class EventCard extends ConsumerWidget {
                   '${event.targetParticipants != null ? ' / ${event.targetParticipants}' : ''}',
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
+                if (event.progress != null) ...[
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                    child: LinearProgressIndicator(
+                      value: event.progress,
+                      minHeight: 8,
+                      backgroundColor: AppColors.surfaceMuted,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.sm),
                 AppButton(
                   label: event.isJoinedByMe ? 'Je participe ✓' : 'Je participe',

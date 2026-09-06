@@ -41,10 +41,21 @@ class ActionTile extends StatelessWidget {
                   [
                     action.category.label,
                     if (action.city != null) action.city!,
-                    DateFormat('d MMM', 'fr_FR').format(action.occurredAt),
+                    DateFormat('d MMM HH:mm', 'fr_FR').format(action.occurredAt),
                   ].join(' · '),
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
+                if (action.locationVerified) ...[
+                  const SizedBox(height: 2),
+                  const Row(
+                    children: [
+                      Icon(Icons.verified, size: 12, color: AppColors.primary),
+                      SizedBox(width: 3),
+                      Text('Position vérifiée',
+                          style: TextStyle(color: AppColors.primary, fontSize: 11)),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

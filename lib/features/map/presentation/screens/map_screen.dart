@@ -34,6 +34,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         .where((a) => a.lat != null && a.lng != null)
         .where((a) => _filter == 'all' || a.category.code == _filter)
         .toList();
+    // Basé sur les actions géolocalisées actuellement chargées (page en
+    // cours), pas un total plateforme — voir `ActionRepository.fetchActions`.
+    final treesPlanted = actionsState.actions
+        .where((a) => a.category.code == 'plantation' && a.quantityUnit == 'arbres')
+        .fold<double>(0, (sum, a) => sum + (a.quantity ?? 0));
     final events = (_filter == 'all' || _filter == 'events')
         ? eventsState.events
         : <Event>[];
@@ -136,6 +141,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
+          if (treesPlanted > 0)
+            Positioned(
+              left: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                  ),
+                  child: Text(
+                    '🌳 ${treesPlanted == treesPlanted.roundToDouble() ? treesPlanted.toInt() : treesPlanted} arbres plantés',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

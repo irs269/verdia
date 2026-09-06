@@ -75,4 +75,27 @@ void main() {
       expect(event.location, 'Moroni, Comores');
     });
   });
+
+  group('Event.progress', () {
+    test('is null when no target has been set', () {
+      final event = Event.fromMap(_eventMap());
+      expect(event.progress, isNull);
+    });
+
+    test('is a fraction between 0 and 1 mid-way', () {
+      final event = Event.fromMap(_eventMap(
+        targetParticipants: 10,
+        participants: List.generate(4, (i) => {'profile_id': 'p$i'}),
+      ));
+      expect(event.progress, 0.4);
+    });
+
+    test('clamps at 1 even if participants exceed the target', () {
+      final event = Event.fromMap(_eventMap(
+        targetParticipants: 2,
+        participants: List.generate(5, (i) => {'profile_id': 'p$i'}),
+      ));
+      expect(event.progress, 1);
+    });
+  });
 }

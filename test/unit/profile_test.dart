@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verdia/features/profile/domain/profile.dart';
 
-Map<String, dynamic> _profileMap({String? city, String? country}) => {
+Map<String, dynamic> _profileMap({String? city, String? country, String? role}) => {
       'id': 'user-1',
       'username': 'fatima.verdia',
       'first_name': 'Fatima',
@@ -12,6 +12,7 @@ Map<String, dynamic> _profileMap({String? city, String? country}) => {
       'country': country,
       'level': 1,
       'total_points': 65,
+      'role': role,
     };
 
 void main() {
@@ -55,6 +56,25 @@ void main() {
 
       expect(updated.city, 'Moroni');
       expect(updated.username, profile.username);
+    });
+
+    test('never lets a caller override role — it stays whatever it was', () {
+      // Comme level/totalPoints : `role` ne peut être changé que via un
+      // accès direct à la base (migration 0015, `revoke update (role)`).
+      final profile = Profile.fromMap(_profileMap(role: 'moderator'));
+      final updated = profile.copyWith(bio: 'Salut');
+
+      expect(updated.isModerator, isTrue);
+    });
+  });
+
+  group('Profile.isModerator', () {
+    test('is false when role is absent (defaults to member)', () {
+      expect(Profile.fromMap(_profileMap()).isModerator, isFalse);
+    });
+
+    test('is true when role is moderator', () {
+      expect(Profile.fromMap(_profileMap(role: 'moderator')).isModerator, isTrue);
     });
   });
 }

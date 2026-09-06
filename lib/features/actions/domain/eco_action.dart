@@ -17,6 +17,7 @@ class EcoAction {
     required this.status,
     this.impactPoints,
     required this.createdAt,
+    this.locationVerified = false,
   });
 
   factory EcoAction.fromMap(Map<String, dynamic> map) {
@@ -39,6 +40,7 @@ class EcoAction {
           ? impactPointsList.first['points'] as int
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
+      locationVerified: map['location_verified'] as bool? ?? false,
     );
   }
 
@@ -57,6 +59,10 @@ class EcoAction {
   final String status;
   final int? impactPoints;
   final DateTime createdAt;
+
+  /// Position choisie sur la carte confirmée (à ≤500m) par la position GPS
+  /// réelle de l'appareil au moment de la publication — voir migration 0015.
+  final bool locationVerified;
 
   String? get quantityLabel {
     if (quantity == null) return null;

@@ -66,6 +66,13 @@ class Event {
     return [city, country].where((e) => e != null && e.isNotEmpty).join(', ');
   }
 
+  /// `null` tant qu'aucun objectif de participants n'a été fixé — dans ce
+  /// cas [EventCard] n'affiche pas de barre de progression.
+  double? get progress {
+    if (targetParticipants == null || targetParticipants! <= 0) return null;
+    return (participantsCount / targetParticipants!).clamp(0, 1);
+  }
+
   Event copyWith({int? participantsCount, bool? isJoinedByMe}) {
     return Event(
       id: id,

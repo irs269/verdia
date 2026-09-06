@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Verdia a besoin d'accéder à tes photos pour ajouter une photo de profil ou illustrer une action, un événement ou un signalement.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Verdia utilise ta position pour vérifier que tu es bien sur place lors de la publication d'une action écologique.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

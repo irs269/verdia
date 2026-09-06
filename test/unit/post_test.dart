@@ -75,6 +75,23 @@ void main() {
       expect(post.media.map((m) => m.id), ['m1', 'm2']);
     });
 
+    test('media label defaults to null for untagged gallery photos', () {
+      final post = Post.fromMap(_basePostMap(media: [
+        {'id': 'm1', 'url': 'https://x/1.jpg', 'type': 'image', 'position': 0},
+      ]));
+
+      expect(post.media.single.label, isNull);
+    });
+
+    test('media label is parsed when tagged avant/apres', () {
+      final post = Post.fromMap(_basePostMap(media: [
+        {'id': 'm1', 'url': 'https://x/1.jpg', 'type': 'image', 'position': 0, 'label': 'avant'},
+        {'id': 'm2', 'url': 'https://x/2.jpg', 'type': 'image', 'position': 1, 'label': 'apres'},
+      ]));
+
+      expect(post.media.map((m) => m.label), ['avant', 'apres']);
+    });
+
     test('action is null for a plain post with no linked action', () {
       final post = Post.fromMap(_basePostMap());
       expect(post.action, isNull);

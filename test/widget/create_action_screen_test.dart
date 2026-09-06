@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:verdia/features/actions/domain/action_category.dart';
 import 'package:verdia/features/actions/presentation/providers/action_provider.dart';
 import 'package:verdia/features/actions/presentation/screens/create_action_screen.dart';
@@ -25,6 +26,13 @@ Widget _wrap() {
 }
 
 void main() {
+  // L'étape 2 affiche désormais un sélecteur de date/heure (`DateFormat`
+  // avec la locale 'fr_FR'), initialisée par `main()` dans la vraie appli
+  // mais jamais chargée automatiquement dans les tests.
+  setUpAll(() async {
+    await initializeDateFormatting('fr_FR');
+  });
+
   testWidgets('the "Suivant" button starts disabled with no category selected',
       (tester) async {
     await tester.pumpWidget(_wrap());

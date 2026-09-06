@@ -217,7 +217,10 @@ class PostCard extends ConsumerWidget {
             ],
           ] else
             Text(post.content),
-          if (post.media.isNotEmpty) ...[
+          if (post.media.any((m) => m.label != null)) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _BeforeAfterPhotos(media: post.media),
+          ] else if (post.media.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -312,6 +315,60 @@ class _CategoryBadge extends StatelessWidget {
         '${action.category.icon} ${action.category.label}',
         style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
       ),
+    );
+  }
+}
+
+class _BeforeAfterPhotos extends StatelessWidget {
+  const _BeforeAfterPhotos({required this.media});
+
+  final List<PostMedia> media;
+
+  @override
+  Widget build(BuildContext context) {
+    PostMedia? findByLabel(String label) {
+      for (final m in media) {
+        if (m.label == label) return m;
+      }
+      return null;
+    }
+
+    final avant = findByLabel('avant');
+    final apres = findByLabel('apres');
+
+    return Row(
+      children: [
+        if (avant != null) Expanded(child: _LabeledPhoto(label: 'Avant', media: avant)),
+        if (avant != null && apres != null) const SizedBox(width: AppSpacing.sm),
+        if (apres != null) Expanded(child: _LabeledPhoto(label: 'Après', media: apres)),
+      ],
+    );
+  }
+}
+
+class _LabeledPhoto extends StatelessWidget {
+  const _LabeledPhoto({required this.label, required this.media});
+
+  final String label;
+  final PostMedia media;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: CachedNetworkImage(imageUrl: media.url, fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

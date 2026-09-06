@@ -11,6 +11,7 @@ class Profile {
     this.country,
     required this.level,
     required this.totalPoints,
+    this.role = 'member',
   });
 
   factory Profile.fromMap(Map<String, dynamic> map) {
@@ -25,6 +26,7 @@ class Profile {
       country: map['country'] as String?,
       level: map['level'] as int,
       totalPoints: map['total_points'] as int,
+      role: map['role'] as String? ?? 'member',
     );
   }
 
@@ -38,8 +40,14 @@ class Profile {
   final String? country;
   final int level;
   final int totalPoints;
+  final String role;
 
   String get fullName => '$firstName $lastName';
+
+  /// `role` ne peut être changé que via un accès direct à la base (voir
+  /// migration 0015 — `revoke update (role)`) : jamais via [Profile.copyWith]
+  /// ni aucun appel client.
+  bool get isModerator => role == 'moderator';
 
   String? get location {
     if (city == null && country == null) return null;
@@ -66,6 +74,7 @@ class Profile {
       country: country ?? this.country,
       level: level,
       totalPoints: totalPoints,
+      role: role,
     );
   }
 }

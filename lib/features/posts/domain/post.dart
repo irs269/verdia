@@ -29,7 +29,13 @@ class PostAuthor {
 }
 
 class PostMedia {
-  const PostMedia({required this.id, required this.url, required this.type, required this.position});
+  const PostMedia({
+    required this.id,
+    required this.url,
+    required this.type,
+    required this.position,
+    this.label,
+  });
 
   factory PostMedia.fromMap(Map<String, dynamic> map) {
     return PostMedia(
@@ -37,8 +43,13 @@ class PostMedia {
       url: map['url'] as String,
       type: map['type'] as String,
       position: map['position'] as int,
+      label: map['label'] as String?,
     );
   }
+
+  /// 'avant' | 'apres' | `null` (photo de galerie non taguée) — voir
+  /// migration 0015.
+  final String? label;
 
   final String id;
   final String url;

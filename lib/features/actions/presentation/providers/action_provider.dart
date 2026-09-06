@@ -99,6 +99,11 @@ final userActionCountsProvider =
   return ref.watch(actionRepositoryProvider).fetchUserActionCounts(profileId);
 });
 
+final userQuantityTotalsProvider =
+    FutureProvider.autoDispose.family<Map<String, double>, String>((ref, profileId) {
+  return ref.watch(actionRepositoryProvider).fetchUserQuantityTotals(profileId);
+});
+
 final createActionControllerProvider =
     AsyncNotifierProvider.autoDispose<CreateActionController, void>(
   CreateActionController.new,
@@ -119,6 +124,12 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
     String? country,
     double? lat,
     double? lng,
+    required DateTime occurredAt,
+    double? deviceLat,
+    double? deviceLng,
+    bool locationVerified = false,
+    Uint8List? avantBytes,
+    Uint8List? apresBytes,
     required List<Uint8List> mediaBytes,
   }) async {
     final userId = ref.read(currentUserProvider)?.id;
@@ -137,6 +148,12 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
           country: country,
           lat: lat,
           lng: lng,
+          occurredAt: occurredAt,
+          deviceLat: deviceLat,
+          deviceLng: deviceLng,
+          locationVerified: locationVerified,
+          avantBytes: avantBytes,
+          apresBytes: apresBytes,
           mediaBytes: mediaBytes,
         ));
     if (!state.hasError) {
@@ -144,6 +161,7 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
       ref.invalidate(feedProvider(FeedType.following));
       ref.invalidate(actionsListProvider);
       ref.invalidate(userActionCountsProvider(userId));
+      ref.invalidate(userQuantityTotalsProvider(userId));
       ref.invalidate(currentProfileProvider);
       ref.invalidate(userBadgesProvider(userId));
       ref.invalidate(activeChallengesProvider);

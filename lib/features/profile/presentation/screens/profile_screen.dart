@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../actions/presentation/widgets/impact_summary_row.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../badges/presentation/widgets/badges_tab.dart';
+import '../../../moderation/presentation/providers/moderation_provider.dart';
 import '../../../posts/presentation/widgets/saved_posts_tab.dart';
 import '../../../posts/presentation/widgets/user_posts_tab.dart';
 import '../providers/follow_provider.dart';
@@ -19,11 +20,18 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(currentProfileProvider);
+    final isModerator = ref.watch(isModeratorProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),
         actions: [
+          if (isModerator)
+            IconButton(
+              icon: const Icon(Icons.shield_outlined),
+              tooltip: 'Modération',
+              onPressed: () => context.push('/moderation'),
+            ),
           IconButton(
             icon: const Icon(Icons.apartment_outlined),
             tooltip: 'Organisations',

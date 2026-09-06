@@ -13,6 +13,7 @@ Map<String, dynamic> _actionMap({
   double? quantity,
   String? quantityUnit,
   List<Map<String, dynamic>>? impactPoints,
+  bool? locationVerified,
 }) {
   return {
     'id': 'action-1',
@@ -30,6 +31,7 @@ Map<String, dynamic> _actionMap({
     'created_at': '2026-09-05T10:00:00Z',
     'action_categories': _categoryMap(),
     'impact_points': impactPoints ?? [],
+    'location_verified': locationVerified,
   };
 }
 
@@ -51,6 +53,16 @@ void main() {
     test('impactPoints is null when the action has not been credited yet', () {
       final action = EcoAction.fromMap(_actionMap());
       expect(action.impactPoints, isNull);
+    });
+
+    test('locationVerified defaults to false when absent', () {
+      final action = EcoAction.fromMap(_actionMap());
+      expect(action.locationVerified, isFalse);
+    });
+
+    test('locationVerified is true once the device position matched', () {
+      final action = EcoAction.fromMap(_actionMap(locationVerified: true));
+      expect(action.locationVerified, isTrue);
     });
   });
 

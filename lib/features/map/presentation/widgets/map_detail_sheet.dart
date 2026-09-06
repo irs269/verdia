@@ -46,6 +46,17 @@ void showActionDetailSheet(BuildContext context, EcoAction action) {
               ],
             ),
           ],
+          if (action.locationVerified) ...[
+            const SizedBox(height: 4),
+            const Row(
+              children: [
+                Icon(Icons.verified, size: 14, color: AppColors.primary),
+                SizedBox(width: 4),
+                Text('Position vérifiée par GPS',
+                    style: TextStyle(color: AppColors.primary, fontSize: 12)),
+              ],
+            ),
+          ],
           if (action.impactPoints != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text('⭐ +${action.impactPoints} points d\'impact',

@@ -32,4 +32,41 @@ class ModerationRepository {
       throw const AppException('Le signalement a échoué.');
     }
   }
+
+  /// Réservé aux modérateurs (policy "Moderators can view all reports",
+  /// migration 0015) — renvoie une liste vide pour tout le monde d'autre.
+  Future<List<Report>> fetchPendingReports() async {
+    try {
+      final data = await _client
+          .from('reports')
+          .select()
+          .eq('status', ReportStatus.pending)
+          .order('created_at');
+      return (data as List).map((e) => Report.fromMap(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Fait évoluer un signalement et journalise la décision. `contentAction`
+  /// correspond aux valeurs acceptées par `moderation_actions.action`.
+  Future<void> resolveReport({
+    required String reportId,
+    required String moderatorId,
+    required String newStatus,
+    required String contentAction,
+    String? notes,
+  }) async {
+    try {
+      await _client.from('reports').update({'status': newStatus}).eq('id', reportId);
+      await _client.from('moderation_actions').insert({
+        'report_id': reportId,
+        'moderator_id': moderatorId,
+        'action': contentAction,
+        'notes': notes,
+      });
+    } catch (_) {
+      throw const AppException('La résolution du signalement a échoué.');
+    }
+  }
 }

@@ -17,12 +17,12 @@ const _savedPostsPageSize = 10;
 const _postSelect = '''
   id, author_id, content, city, country, created_at,
   profiles!posts_author_id_fkey(username, first_name, last_name, avatar_url),
-  post_media(id, url, type, position),
+  post_media(id, url, type, position, label),
   likes(count),
   comments(count),
   actions(
     id, title, description, quantity, quantity_unit, participants_count,
-    city, country, occurred_at, status, created_at,
+    city, country, occurred_at, status, created_at, location_verified,
     action_categories(id, code, label, icon, color),
     impact_points(points)
   )
