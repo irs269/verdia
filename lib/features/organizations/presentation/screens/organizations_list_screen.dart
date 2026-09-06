@@ -17,6 +17,11 @@ class OrganizationsListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Organisations')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/organizations/create'),
+        tooltip: 'Créer une organisation',
+        child: const Icon(Icons.add),
+      ),
       body: organizationsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),

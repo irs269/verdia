@@ -34,6 +34,7 @@ class _EditOrganizationScreenState extends ConsumerState<EditOrganizationScreen>
   late final _cityController = TextEditingController(text: widget.organization.city);
   late final _countryController = TextEditingController(text: widget.organization.country);
   late final _websiteController = TextEditingController(text: widget.organization.website);
+  final _memberUsernameController = TextEditingController();
   Uint8List? _newLogo;
 
   @override
@@ -43,7 +44,33 @@ class _EditOrganizationScreenState extends ConsumerState<EditOrganizationScreen>
     _cityController.dispose();
     _countryController.dispose();
     _websiteController.dispose();
+    _memberUsernameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addMember() async {
+    final username = _memberUsernameController.text.trim();
+    if (username.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await ref.read(organizationControllerProvider.notifier).addMember(
+          organizationId: widget.organization.id,
+          username: username,
+        );
+    if (!mounted) return;
+    if (success) {
+      _memberUsernameController.clear();
+    } else {
+      final error = ref.read(organizationControllerProvider).error;
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _removeMember(String profileId) async {
+    await ref.read(organizationControllerProvider.notifier).removeMember(
+          organizationId: widget.organization.id,
+          profileId: profileId,
+        );
   }
 
   Future<void> _pickLogo() async {
@@ -135,6 +162,67 @@ class _EditOrganizationScreenState extends ConsumerState<EditOrganizationScreen>
                   label: 'Enregistrer',
                   isLoading: controllerState.isLoading,
                   onPressed: _submit,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const Divider(),
+                const SizedBox(height: AppSpacing.md),
+                Text('Membres', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        label: "Nom d'utilisateur",
+                        hint: 'ex. ahmed.verdia',
+                        controller: _memberUsernameController,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22),
+                      child: IconButton.filled(
+                        onPressed: controllerState.isLoading ? null : _addMember,
+                        icon: const Icon(Icons.person_add_alt_1),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final membersAsync =
+                        ref.watch(organizationMembersProvider(widget.organization.id));
+                    return membersAsync.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (error, _) => Text(error.toString()),
+                      data: (members) => Column(
+                        children: members.map((member) {
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.surfaceMuted,
+                              backgroundImage: member.avatarUrl != null
+                                  ? CachedNetworkImageProvider(member.avatarUrl!)
+                                  : null,
+                              child: member.avatarUrl == null
+                                  ? const Icon(Icons.person, size: 18, color: AppColors.textSecondary)
+                                  : null,
+                            ),
+                            title: Text(member.fullName),
+                            subtitle: Text('@${member.username}${member.isOwner ? ' · Propriétaire' : ''}'),
+                            trailing: member.isOwner
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                                    tooltip: 'Retirer',
+                                    onPressed: () => _removeMember(member.profileId),
+                                  ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

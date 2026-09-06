@@ -56,4 +56,38 @@ void main() {
       expect(org.location, isNull);
     });
   });
+
+  group('OrganizationMember.fromMap', () {
+    test('joins profile fields and flags the owner', () {
+      final member = OrganizationMember.fromMap({
+        'profile_id': 'user-1',
+        'role': 'owner',
+        'profiles': {
+          'username': 'ahmed.verdia',
+          'first_name': 'Ahmed',
+          'last_name': 'Said',
+          'avatar_url': null,
+        },
+      });
+
+      expect(member.username, 'ahmed.verdia');
+      expect(member.fullName, 'Ahmed Said');
+      expect(member.isOwner, isTrue);
+    });
+
+    test('isOwner is false for a plain member', () {
+      final member = OrganizationMember.fromMap({
+        'profile_id': 'user-2',
+        'role': 'member',
+        'profiles': {
+          'username': 'fatima.verdia',
+          'first_name': 'Fatima',
+          'last_name': 'Ali',
+          'avatar_url': null,
+        },
+      });
+
+      expect(member.isOwner, isFalse);
+    });
+  });
 }

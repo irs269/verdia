@@ -6,6 +6,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../actions/domain/eco_action.dart';
 import '../../../actions/presentation/providers/action_provider.dart';
+import '../../../organizations/domain/organization.dart';
+import '../../../organizations/presentation/providers/organization_provider.dart';
 import '../../domain/content_report.dart';
 import '../providers/moderation_provider.dart';
 
@@ -19,17 +21,18 @@ class ModerationDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Modération'),
           bottom: const TabBar(tabs: [
             Tab(text: 'Signalements'),
             Tab(text: 'Actions publiées'),
+            Tab(text: 'Organisations'),
           ]),
         ),
         body: const TabBarView(
-          children: [_ReportsTab(), _ActionsTab()],
+          children: [_ReportsTab(), _ActionsTab(), _OrganizationsTab()],
         ),
       ),
     );
@@ -146,6 +149,12 @@ class _ReportsTab extends ConsumerWidget {
 class _ActionsTab extends ConsumerWidget {
   const _ActionsTab();
 
+  /// Écart en jours entre la date déclarée (`occurred_at`, saisie librement)
+  /// et l'horodatage serveur de publication (`created_at`, fiable) — seule
+  /// source de recoupement disponible pour ce MVP (voir audit, item "Date/
+  /// heure comme preuve").
+  int _dateGap(EcoAction action) => action.createdAt.difference(action.occurredAt).inDays.abs();
+
   Future<void> _confirmReject(BuildContext context, WidgetRef ref, EcoAction action) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -207,6 +216,19 @@ class _ActionsTab extends ConsumerWidget {
                     Text(action.title, style: const TextStyle(fontWeight: FontWeight.w600)),
                     Text('${action.category.label} · ${DateFormat('d MMM', 'fr_FR').format(action.occurredAt)}',
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    if (_dateGap(action) > 7) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 13, color: AppColors.error),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Déclarée ${_dateGap(action)} j avant sa publication — jamais recoupée',
+                            style: const TextStyle(color: AppColors.error, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -216,6 +238,89 @@ class _ActionsTab extends ConsumerWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class _OrganizationsTab extends ConsumerWidget {
+  const _OrganizationsTab();
+
+  Future<void> _setVerified(
+    BuildContext context,
+    WidgetRef ref,
+    Organization organization,
+    bool verified,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await ref.read(organizationControllerProvider.notifier).setVerified(
+          organizationId: organization.id,
+          verified: verified,
+        );
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(success ? 'Organisation mise à jour.' : 'La mise à jour a échoué.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unverifiedAsync = ref.watch(unverifiedOrganizationsProvider);
+
+    return unverifiedAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text(error.toString())),
+      data: (organizations) {
+        if (organizations.isEmpty) {
+          return const Center(
+            child: Text('Aucune organisation en attente de vérification.',
+                style: TextStyle(color: AppColors.textSecondary)),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: organizations.length,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (context, index) {
+            final org = organizations[index];
+            return Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(org.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(OrganizationCategory.label(org.category),
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(org.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _setVerified(context, ref, org, false),
+                          child: const Text('Ignorer'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => _setVerified(context, ref, org, true),
+                          child: const Text('Vérifier'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

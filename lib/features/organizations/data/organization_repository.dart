@@ -49,6 +49,99 @@ class OrganizationRepository {
     }
   }
 
+  /// Toujours créée non vérifiée (`verified` garde son défaut `false` — le
+  /// trigger `prevent_owner_self_verification`, migration 0016, empêche de
+  /// toute façon le créateur de se vérifier lui-même). Le créateur devient
+  /// automatiquement `owner`.
+  Future<Organization> createOrganization({
+    required String creatorId,
+    required String name,
+    required String description,
+    required String category,
+    String? city,
+    String? country,
+    String? website,
+  }) async {
+    try {
+      final data = await _client
+          .from('organizations')
+          .insert({
+            'name': name,
+            'description': description,
+            'category': category,
+            'city': city,
+            'country': country,
+            'website': website,
+          })
+          .select()
+          .single();
+      final organization = Organization.fromMap(data);
+      await _client.from('organization_members').insert({
+        'organization_id': organization.id,
+        'profile_id': creatorId,
+        'role': 'owner',
+      });
+      return organization;
+    } catch (_) {
+      throw const AppException("La création de l'organisation a échoué.");
+    }
+  }
+
+  Future<List<OrganizationMember>> fetchMembers(String organizationId) async {
+    try {
+      final data = await _client
+          .from('organization_members')
+          .select('profile_id, role, profiles(username, first_name, last_name, avatar_url)')
+          .eq('organization_id', organizationId)
+          .order('role');
+      return (data as List)
+          .map((e) => OrganizationMember.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> addMember({required String organizationId, required String profileId}) async {
+    try {
+      await _client.from('organization_members').insert({
+        'organization_id': organizationId,
+        'profile_id': profileId,
+        'role': 'member',
+      });
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw const AppException('Ce membre fait déjà partie de l\'organisation.');
+      }
+      throw const AppException("L'ajout du membre a échoué.");
+    } catch (_) {
+      throw const AppException("L'ajout du membre a échoué.");
+    }
+  }
+
+  Future<void> removeMember({required String organizationId, required String profileId}) async {
+    try {
+      await _client
+          .from('organization_members')
+          .delete()
+          .eq('organization_id', organizationId)
+          .eq('profile_id', profileId);
+    } catch (_) {
+      throw const AppException('Le retrait du membre a échoué.');
+    }
+  }
+
+  /// Réservé aux modérateurs (policy "Moderators can update any
+  /// organization", migration 0016) — écrit dans le seul champ que le
+  /// trigger `prevent_owner_self_verification` laisse un modérateur changer.
+  Future<void> setVerified({required String organizationId, required bool verified}) async {
+    try {
+      await _client.from('organizations').update({'verified': verified}).eq('id', organizationId);
+    } catch (_) {
+      throw const AppException('La mise à jour du statut a échoué.');
+    }
+  }
+
   Future<Organization> updateOrganization({
     required String organizationId,
     required String name,

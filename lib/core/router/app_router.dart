@@ -20,6 +20,7 @@ import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/moderation/presentation/screens/moderation_dashboard_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/organizations/domain/organization.dart';
+import '../../features/organizations/presentation/screens/create_organization_screen.dart';
 import '../../features/organizations/presentation/screens/edit_organization_screen.dart';
 import '../../features/organizations/presentation/screens/organization_detail_screen.dart';
 import '../../features/organizations/presentation/screens/organizations_list_screen.dart';
@@ -60,6 +61,7 @@ abstract final class AppRoutes {
   static const notifications = '/notifications';
   static const search = '/search';
   static const organizations = '/organizations';
+  static const createOrganization = '/organizations/create';
   static const organizationDetail = '/organizations/:id';
   static const editOrganization = '/organizations/:id/edit';
   static const moderation = '/moderation';
@@ -172,6 +174,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.organizations,
         builder: (_, _) => const OrganizationsListScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.createOrganization,
+        builder: (_, _) => const CreateOrganizationScreen(),
       ),
       GoRoute(
         path: AppRoutes.organizationDetail,

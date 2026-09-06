@@ -90,3 +90,34 @@ class Organization {
     return [city, country].where((e) => e != null && e.isNotEmpty).join(', ');
   }
 }
+
+/// Une ligne de `organization_members`, avec les infos de profil jointes pour
+/// l'affichage (voir [OrganizationRepository.fetchMembers]).
+class OrganizationMember {
+  const OrganizationMember({
+    required this.profileId,
+    required this.username,
+    required this.fullName,
+    this.avatarUrl,
+    required this.role,
+  });
+
+  factory OrganizationMember.fromMap(Map<String, dynamic> map) {
+    final profile = map['profiles'] as Map<String, dynamic>;
+    return OrganizationMember(
+      profileId: map['profile_id'] as String,
+      username: profile['username'] as String,
+      fullName: '${profile['first_name']} ${profile['last_name']}',
+      avatarUrl: profile['avatar_url'] as String?,
+      role: map['role'] as String,
+    );
+  }
+
+  final String profileId;
+  final String username;
+  final String fullName;
+  final String? avatarUrl;
+  final String role;
+
+  bool get isOwner => role == 'owner';
+}
