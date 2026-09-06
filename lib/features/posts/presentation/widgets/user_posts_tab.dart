@@ -49,7 +49,18 @@ class _UserPostsTabState extends ConsumerState<UserPostsTab> {
     }
 
     if (state.posts.isEmpty) {
-      return const EmptyTab(emoji: '🌱', message: "Aucune publication pour le moment.");
+      // `ListView` scrollable pour que le tiré-pour-rafraîchir marche même à
+      // vide — cet onglet reste vivant tant que le profil l'est.
+      return RefreshIndicator(
+        onRefresh: () => ref.read(userPostsProvider(widget.profileId).notifier).refresh(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            EmptyTab(emoji: '🌱', message: "Aucune publication pour le moment."),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(

@@ -44,15 +44,29 @@ class _SavedPostsTabState extends ConsumerState<SavedPostsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final notifier = ref.read(savedPostsProvider.notifier);
+
     if (state.error != null && state.posts.isEmpty) {
       return Center(child: Text(state.error.toString()));
     }
 
     if (state.posts.isEmpty) {
-      return const EmptyTab(emoji: '🔖', message: "Rien d'enregistré pour l'instant.");
+      // Un `ListView` scrollable (même vide) est nécessaire pour que le
+      // tiré-pour-rafraîchir fonctionne : cet onglet reste vivant tant que
+      // le profil l'est (TabBarView le garde en cache), donc c'est le seul
+      // moyen de voir apparaître un post qu'on vient d'enregistrer sans
+      // relancer l'appli.
+      return RefreshIndicator(
+        onRefresh: notifier.refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            EmptyTab(emoji: '🔖', message: "Rien d'enregistré pour l'instant."),
+          ],
+        ),
+      );
     }
-
-    final notifier = ref.read(savedPostsProvider.notifier);
 
     return RefreshIndicator(
       onRefresh: notifier.refresh,

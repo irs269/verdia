@@ -127,7 +127,20 @@ class _FeedListState extends ConsumerState<_FeedList>
       final message = widget.type == FeedType.forYou
           ? 'Aucune publication pour le moment 🌱'
           : "Suis des membres pour voir leurs actions ici.";
-      return Center(child: Text(message, style: const TextStyle(color: AppColors.textSecondary)));
+      // `ListView` scrollable pour que le tiré-pour-rafraîchir marche même à
+      // vide — cet onglet reste vivant en arrière-plan (IndexedStack/TabBarView).
+      return RefreshIndicator(
+        onRefresh: () => ref.read(feedProvider(widget.type).notifier).refresh(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 120),
+            Center(
+              child: Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+            ),
+          ],
+        ),
+      );
     }
 
     return RefreshIndicator(
