@@ -10,7 +10,18 @@ final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
   return MessagingRepository(SupabaseService.client);
 });
 
+/// Signal réémis à chaque changement sur `messages` (voir
+/// [MessagingRepository.streamMyConversationsChanged]) — sans ça,
+/// [conversationsListProvider] ne serait jamais réévalué tant qu'un widget
+/// (ex. le badge de l'AppBar du fil) le garde en vie, puisqu'un
+/// `FutureProvider.autoDispose` ne se recalcule qu'à la création d'une
+/// nouvelle instance, jamais tout seul.
+final _conversationsChangedProvider = StreamProvider.autoDispose<void>((ref) {
+  return ref.watch(messagingRepositoryProvider).streamMyConversationsChanged();
+});
+
 final conversationsListProvider = FutureProvider.autoDispose<List<ConversationSummary>>((ref) {
+  ref.watch(_conversationsChangedProvider);
   return ref.watch(messagingRepositoryProvider).fetchConversations();
 });
 

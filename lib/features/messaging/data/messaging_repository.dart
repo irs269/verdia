@@ -136,6 +136,24 @@ class MessagingRepository {
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at')
-        .map((rows) => rows.map(Message.fromMap).toList());
+        .map((rows) {
+          final messages = rows.map(Message.fromMap).toList();
+          // `.order()` trie l'instantané initial mais un nouveau message livré
+          // par la suite via Realtime est ajouté en fin de liste brute sans
+          // être réinséré à sa place triée — trié explicitement ici pour ne
+          // jamais dépendre de ce détail d'implémentation du stream.
+          messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return messages;
+        });
+  }
+
+  /// Signal "quelque chose a changé" (pas les données elles-mêmes) pour
+  /// déclencher un refetch de [fetchConversations] — même pattern que
+  /// `CommentRepository.streamCommentsChanged`. Nécessaire car la RLS de
+  /// `messages` (migration 0028) ne laisse Realtime livrer que les lignes des
+  /// conversations où l'utilisateur est participant, donc ce flux non filtré
+  /// ne réagit déjà qu'aux messages qui concernent l'utilisateur connecté.
+  Stream<void> streamMyConversationsChanged() {
+    return _client.from('messages').stream(primaryKey: ['id']).map((_) {});
   }
 }
