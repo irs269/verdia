@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../actions/domain/eco_action.dart';
+import '../../../moderation/domain/content_report.dart';
+import '../../../moderation/presentation/widgets/report_content_sheet.dart';
 import '../../domain/post.dart';
 
 class PostCard extends StatelessWidget {
@@ -69,6 +71,21 @@ class PostCard extends StatelessWidget {
                 Text(
                   _relativeDate(post.createdAt),
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                  onSelected: (value) {
+                    if (value == 'report') {
+                      showReportContentSheet(
+                        context,
+                        targetType: ReportTargetType.post,
+                        targetId: post.id,
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'report', child: Text('Signaler')),
+                  ],
                 ),
               ],
             ),

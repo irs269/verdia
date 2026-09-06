@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../moderation/domain/content_report.dart';
+import '../../../moderation/presentation/widgets/report_content_sheet.dart';
 import '../providers/comments_provider.dart';
 
 class CommentsScreen extends ConsumerStatefulWidget {
@@ -141,6 +143,17 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                               onPressed: () => ref
                                   .read(commentControllerProvider.notifier)
                                   .deleteComment(widget.postId, comment.id),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.flag_outlined, size: 18),
+                              color: AppColors.textSecondary,
+                              tooltip: 'Signaler',
+                              onPressed: () => showReportContentSheet(
+                                context,
+                                targetType: ReportTargetType.comment,
+                                targetId: comment.id,
+                              ),
                             ),
                         ],
                       );
