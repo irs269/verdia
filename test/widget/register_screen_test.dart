@@ -7,7 +7,7 @@ import 'test_helpers.dart';
 
 Widget _wrap(Widget child) {
   return ProviderScope(
-    child: MaterialApp(home: child),
+    child: wrapLocalized(child),
   );
 }
 

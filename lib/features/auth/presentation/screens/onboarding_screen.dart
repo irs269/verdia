@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/app_button.dart';
 
 class _OnboardingPage {
@@ -11,13 +12,6 @@ class _OnboardingPage {
   final String emoji;
   final String title;
 }
-
-const _pages = [
-  _OnboardingPage('🌱', 'Agis pour ta planète'),
-  _OnboardingPage('📸', 'Partage tes actions'),
-  _OnboardingPage('🌍', 'Inspire ta communauté'),
-  _OnboardingPage('🏆', 'Mesure ton impact'),
-];
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -40,7 +34,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLast = _page == _pages.length - 1;
+    final l10n = AppLocalizations.of(context)!;
+    final pages = [
+      _OnboardingPage('🌱', l10n.onboardingPage1Title),
+      _OnboardingPage('📸', l10n.onboardingPage2Title),
+      _OnboardingPage('🌍', l10n.onboardingPage3Title),
+      _OnboardingPage('🏆', l10n.onboardingPage4Title),
+    ];
+    final isLast = _page == pages.length - 1;
 
     return Scaffold(
       body: SafeArea(
@@ -52,16 +53,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 alignment: Alignment.topRight,
                 child: TextButton(
                   onPressed: _finish,
-                  child: const Text('Passer'),
+                  child: Text(l10n.onboardingSkip),
                 ),
               ),
               Expanded(
                 child: PageView.builder(
                   controller: _controller,
-                  itemCount: _pages.length,
+                  itemCount: pages.length,
                   onPageChanged: (i) => setState(() => _page = i),
                   itemBuilder: (context, index) {
-                    final page = _pages[index];
+                    final page = pages[index];
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -81,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (index) {
+                children: List.generate(pages.length, (index) {
                   final active = index == _page;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -97,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppButton(
-                label: isLast ? 'Commencer' : 'Suivant',
+                label: isLast ? l10n.onboardingStart : l10n.onboardingNext,
                 onPressed: () {
                   if (isLast) {
                     _finish();

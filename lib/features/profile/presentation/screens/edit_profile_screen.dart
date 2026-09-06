@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../domain/profile.dart';
@@ -75,6 +76,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final controllerState = ref.watch(profileControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen(profileControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -154,7 +156,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 AppTextField(
                   label: "Nom d'utilisateur",
                   controller: _usernameController,
-                  validator: Validators.username,
+                  validator: Validators.username(l10n),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(

@@ -1,0 +1,64 @@
+{
+  "@@locale": "fr",
+
+  "retry": "Réessayer",
+
+  "onboardingSkip": "Passer",
+  "onboardingPage1Title": "Agis pour ta planète",
+  "onboardingPage2Title": "Partage tes actions",
+  "onboardingPage3Title": "Inspire ta communauté",
+  "onboardingPage4Title": "Mesure ton impact",
+  "onboardingStart": "Commencer",
+  "onboardingNext": "Suivant",
+
+  "loginHeadline": "Connecte toi à ton\ncompte",
+  "emailOrPhoneLabel": "Email ou téléphone",
+  "emailHint": "exemple@gmail.com",
+  "passwordLabel": "Mot de passe",
+  "forgotPasswordLink": "Mot de passe oublié ?",
+  "loginButton": "Se connecter",
+  "orContinueWith": "ou continuer avec",
+  "continueWithGoogle": "Google",
+  "continueWithApple": "Apple",
+  "noAccountYet": "Pas encore de compte ? ",
+  "signUpLink": "S'inscrire",
+
+  "registerTitle": "Créer un compte",
+  "firstNameLabel": "Prénom",
+  "lastNameLabel": "Nom",
+  "usernameLabel": "Nom d'utilisateur",
+  "usernameHint": "ahmed.green",
+  "emailLabel": "Email",
+  "confirmPasswordLabel": "Confirmer le mot de passe",
+  "createAccountButton": "Créer mon compte",
+  "registerSuccessMessage": "Vérifie ta boîte mail pour confirmer ton compte 📩",
+
+  "forgotPasswordTitle": "Mot de passe oublié",
+  "forgotPasswordSentMessage": "Un email de réinitialisation a été envoyé à {email}.",
+  "@forgotPasswordSentMessage": {
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "forgotPasswordInstructions": "Indique ton email pour recevoir un lien de réinitialisation.",
+  "sendResetLinkButton": "Envoyer le lien",
+
+  "navHome": "Accueil",
+  "navMap": "Carte",
+  "navActions": "Actions",
+  "navProfile": "Profil",
+
+  "feedForYouTab": "Pour toi",
+  "feedFollowingTab": "Abonnements",
+  "feedEmptyForYou": "Aucune publication pour le moment 🌱",
+  "feedEmptyFollowing": "Suis des membres pour voir leurs actions ici.",
+
+  "emailRequired": "Email requis",
+  "emailInvalid": "Email invalide",
+  "passwordRequired": "Mot de passe requis",
+  "passwordTooShort": "8 caractères minimum",
+  "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+  "fieldRequired": "Champ requis",
+  "usernameRequired": "Nom d'utilisateur requis",
+  "usernameInvalid": "3-20 caractères : lettres, chiffres, . ou _"
+}

@@ -11,7 +11,7 @@ import 'test_helpers.dart';
 /// échoue, ce qui permet de la tester sans initialiser Supabase.
 Widget _wrap(Widget child) {
   return ProviderScope(
-    child: MaterialApp(home: child),
+    child: wrapLocalized(child),
   );
 }
 

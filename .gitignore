@@ -46,3 +46,8 @@ app.*.map.json
 
 # Environment secrets
 .env
+
+# Localisation générée (flutter gen-l10n, régénéré via `flutter pub get`
+# grâce à `generate: true` dans pubspec.yaml) — seul lib/l10n/app_fr.arb est
+# la source de vérité versionnée.
+/lib/l10n/app_localizations*.dart

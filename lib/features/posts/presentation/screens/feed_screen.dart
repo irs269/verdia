@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../data/post_repository.dart';
 import '../providers/feed_provider.dart';
@@ -15,6 +16,7 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return DefaultTabController(
       length: 2,
@@ -41,13 +43,13 @@ class FeedScreen extends ConsumerWidget {
               ),
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.primary,
             tabs: [
-              Tab(text: 'Pour toi'),
-              Tab(text: 'Abonnements'),
+              Tab(text: l10n.feedForYouTab),
+              Tab(text: l10n.feedFollowingTab),
             ],
           ),
         ),
@@ -99,6 +101,7 @@ class _FeedListState extends ConsumerState<_FeedList>
   Widget build(BuildContext context) {
     super.build(context);
     final state = ref.watch(feedProvider(widget.type));
+    final l10n = AppLocalizations.of(context)!;
 
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -115,7 +118,7 @@ class _FeedListState extends ConsumerState<_FeedList>
               const SizedBox(height: AppSpacing.md),
               FilledButton(
                 onPressed: () => ref.read(feedProvider(widget.type).notifier).refresh(),
-                child: const Text('Réessayer'),
+                child: Text(l10n.retry),
               ),
             ],
           ),
@@ -124,9 +127,8 @@ class _FeedListState extends ConsumerState<_FeedList>
     }
 
     if (state.posts.isEmpty) {
-      final message = widget.type == FeedType.forYou
-          ? 'Aucune publication pour le moment 🌱'
-          : "Suis des membres pour voir leurs actions ici.";
+      final message =
+          widget.type == FeedType.forYou ? l10n.feedEmptyForYou : l10n.feedEmptyFollowing;
       // `ListView` scrollable pour que le tiré-pour-rafraîchir marche même à
       // vide — cet onglet reste vivant en arrière-plan (IndexedStack/TabBarView).
       return RefreshIndicator(

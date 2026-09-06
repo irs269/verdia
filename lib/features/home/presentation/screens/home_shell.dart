@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// Coquille de navigation principale : 4 onglets + bouton central rond pour
 /// créer une action, comme sur la maquette VERDIA.
@@ -10,24 +11,25 @@ class HomeShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  static const _tabs = [
-    (icon: Icons.home_rounded, label: 'Accueil'),
-    (icon: Icons.map_rounded, label: 'Carte'),
-    null, // emplacement du bouton central
-    (icon: Icons.event_rounded, label: 'Actions'),
-    (icon: Icons.person_rounded, label: 'Profil'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tabs = [
+      (icon: Icons.home_rounded, label: l10n.navHome),
+      (icon: Icons.map_rounded, label: l10n.navMap),
+      null, // emplacement du bouton central
+      (icon: Icons.event_rounded, label: l10n.navActions),
+      (icon: Icons.person_rounded, label: l10n.navProfile),
+    ];
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: SafeArea(
         child: SizedBox(
           height: 64,
           child: Row(
-            children: List.generate(_tabs.length, (index) {
-              final tab = _tabs[index];
+            children: List.generate(tabs.length, (index) {
+              final tab = tabs[index];
               if (tab == null) {
                 return Expanded(
                   child: Center(

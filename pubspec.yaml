@@ -25,6 +25,11 @@ dependencies:
   # Env config
   flutter_dotenv: ^5.2.1
 
+  # Internationalisation (architecture prête, seul le français est peuplé
+  # pour l'instant — voir lib/l10n/app_fr.arb)
+  flutter_localizations:
+    sdk: flutter
+
   # UI / assets
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
@@ -49,6 +54,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - .env

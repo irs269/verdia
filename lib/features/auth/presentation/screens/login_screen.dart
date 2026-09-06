@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -42,6 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -64,27 +66,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const Icon(Icons.eco_rounded, color: AppColors.primary, size: 40),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Connecte toi à ton\ncompte',
+                  l10n.loginHeadline,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 AppTextField(
-                  label: 'Email ou téléphone',
-                  hint: 'exemple@gmail.com',
+                  label: l10n.emailOrPhoneLabel,
+                  hint: l10n.emailHint,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  validator: Validators.email,
+                  validator: Validators.email(l10n),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Mot de passe',
+                  label: l10n.passwordLabel,
                   controller: _passwordController,
                   obscureText: _obscure,
                   textInputAction: TextInputAction.done,
-                  validator: Validators.password,
+                  validator: Validators.password(l10n),
                   suffixIcon: IconButton(
                     icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                     onPressed: () => setState(() => _obscure = !_obscure),
@@ -94,12 +96,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => context.push(AppRoutes.forgotPassword),
-                    child: const Text('Mot de passe oublié ?'),
+                    child: Text(l10n.forgotPasswordLink),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 AppButton(
-                  label: 'Se connecter',
+                  label: l10n.loginButton,
                   isLoading: authState.isLoading,
                   onPressed: _submit,
                 ),
@@ -109,7 +111,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const Expanded(child: Divider()),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      child: Text('ou continuer avec',
+                      child: Text(l10n.orContinueWith,
                           style: Theme.of(context).textTheme.bodySmall),
                     ),
                     const Expanded(child: Divider()),
@@ -122,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: OutlinedButton.icon(
                         onPressed: null,
                         icon: const Icon(Icons.g_mobiledata, size: 28),
-                        label: const Text('Google'),
+                        label: Text(l10n.continueWithGoogle),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -130,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: OutlinedButton.icon(
                         onPressed: null,
                         icon: const Icon(Icons.apple),
-                        label: const Text('Apple'),
+                        label: Text(l10n.continueWithApple),
                       ),
                     ),
                   ],
@@ -139,13 +141,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: TextButton(
                     onPressed: () => context.push(AppRoutes.register),
-                    child: const Text.rich(
+                    child: Text.rich(
                       TextSpan(
-                        text: 'Pas encore de compte ? ',
+                        text: l10n.noAccountYet,
                         children: [
                           TextSpan(
-                            text: "S'inscrire",
-                            style: TextStyle(
+                            text: l10n.signUpLink,
+                            style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
                             ),

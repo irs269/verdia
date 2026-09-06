@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -47,10 +48,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           username: _usernameController.text.trim(),
         );
     if (success && mounted) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vérifie ta boîte mail pour confirmer ton compte 📩'),
-        ),
+        SnackBar(content: Text(l10n.registerSuccessMessage)),
       );
       context.pop();
     }
@@ -59,6 +59,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -69,7 +70,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Créer un compte')),
+      appBar: AppBar(title: Text(l10n.registerTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -82,47 +83,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   children: [
                     Expanded(
                       child: AppTextField(
-                        label: 'Prénom',
+                        label: l10n.firstNameLabel,
                         controller: _firstNameController,
                         textInputAction: TextInputAction.next,
-                        validator: Validators.required,
+                        validator: (v) => Validators.required(v, message: l10n.fieldRequired),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: AppTextField(
-                        label: 'Nom',
+                        label: l10n.lastNameLabel,
                         controller: _lastNameController,
                         textInputAction: TextInputAction.next,
-                        validator: Validators.required,
+                        validator: (v) => Validators.required(v, message: l10n.fieldRequired),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: "Nom d'utilisateur",
-                  hint: 'ahmed.green',
+                  label: l10n.usernameLabel,
+                  hint: l10n.usernameHint,
                   controller: _usernameController,
                   textInputAction: TextInputAction.next,
-                  validator: Validators.username,
+                  validator: Validators.username(l10n),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Email',
-                  hint: 'exemple@gmail.com',
+                  label: l10n.emailLabel,
+                  hint: l10n.emailHint,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  validator: Validators.email,
+                  validator: Validators.email(l10n),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Mot de passe',
+                  label: l10n.passwordLabel,
                   controller: _passwordController,
                   obscureText: _obscure,
                   textInputAction: TextInputAction.next,
-                  validator: Validators.password,
+                  validator: Validators.password(l10n),
                   suffixIcon: IconButton(
                     icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                     onPressed: () => setState(() => _obscure = !_obscure),
@@ -130,16 +131,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(
-                  label: 'Confirmer le mot de passe',
+                  label: l10n.confirmPasswordLabel,
                   controller: _confirmController,
                   obscureText: _obscure,
                   textInputAction: TextInputAction.done,
+                  // Lambda plutôt qu'une référence directe : `_passwordController.text`
+                  // doit être relu à chaque validation (pas figé à la construction
+                  // du widget), sinon la comparaison utilise une valeur périmée.
                   validator: (value) =>
-                      Validators.confirmPassword(value, _passwordController.text),
+                      Validators.confirmPassword(l10n, _passwordController.text)(value),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 AppButton(
-                  label: 'Créer mon compte',
+                  label: l10n.createAccountButton,
                   isLoading: authState.isLoading,
                   onPressed: _submit,
                 ),

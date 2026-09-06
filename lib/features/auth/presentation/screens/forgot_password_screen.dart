@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_provider.dart';
@@ -38,6 +39,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -48,7 +50,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mot de passe oublié')),
+      appBar: AppBar(title: Text(l10n.forgotPasswordTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -60,8 +62,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       const Icon(Icons.mark_email_read_outlined, size: 56),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Un email de réinitialisation a été envoyé à '
-                        '${_emailController.text.trim()}.',
+                        l10n.forgotPasswordSentMessage(_emailController.text.trim()),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
@@ -74,22 +75,21 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Indique ton email pour recevoir un lien de '
-                        'réinitialisation.',
+                        l10n.forgotPasswordInstructions,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       AppTextField(
-                        label: 'Email',
-                        hint: 'exemple@gmail.com',
+                        label: l10n.emailLabel,
+                        hint: l10n.emailHint,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.done,
-                        validator: Validators.email,
+                        validator: Validators.email(l10n),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       AppButton(
-                        label: 'Envoyer le lien',
+                        label: l10n.sendResetLinkButton,
                         isLoading: authState.isLoading,
                         onPressed: _submit,
                       ),

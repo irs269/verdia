@@ -1,50 +1,53 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verdia/core/utils/validators.dart';
+import 'package:verdia/l10n/app_localizations_fr.dart';
 
 void main() {
+  final l10n = AppLocalizationsFr();
+
   group('Validators.email', () {
     test('rejects empty value', () {
-      expect(Validators.email(''), isNotNull);
+      expect(Validators.email(l10n)(''), isNotNull);
     });
 
     test('rejects malformed email', () {
-      expect(Validators.email('not-an-email'), isNotNull);
+      expect(Validators.email(l10n)('not-an-email'), isNotNull);
     });
 
     test('accepts a valid email', () {
-      expect(Validators.email('user@example.com'), isNull);
+      expect(Validators.email(l10n)('user@example.com'), isNull);
     });
 
     test('trims surrounding whitespace before validating', () {
-      expect(Validators.email('  user@example.com  '), isNull);
+      expect(Validators.email(l10n)('  user@example.com  '), isNull);
     });
   });
 
   group('Validators.password', () {
     test('rejects empty password', () {
-      expect(Validators.password(''), isNotNull);
+      expect(Validators.password(l10n)(''), isNotNull);
     });
 
     test('rejects passwords shorter than 8 characters', () {
-      expect(Validators.password('short'), isNotNull);
+      expect(Validators.password(l10n)('short'), isNotNull);
     });
 
     test('accepts a password of exactly 8 characters', () {
-      expect(Validators.password('12345678'), isNull);
+      expect(Validators.password(l10n)('12345678'), isNull);
     });
 
     test('accepts a password of 8+ characters', () {
-      expect(Validators.password('password123'), isNull);
+      expect(Validators.password(l10n)('password123'), isNull);
     });
   });
 
   group('Validators.confirmPassword', () {
     test('rejects when confirmation differs from the original', () {
-      expect(Validators.confirmPassword('abc12345', 'xyz98765'), isNotNull);
+      expect(Validators.confirmPassword(l10n, 'xyz98765')('abc12345'), isNotNull);
     });
 
     test('accepts when confirmation matches the original', () {
-      expect(Validators.confirmPassword('abc12345', 'abc12345'), isNull);
+      expect(Validators.confirmPassword(l10n, 'abc12345')('abc12345'), isNull);
     });
   });
 
@@ -68,23 +71,23 @@ void main() {
 
   group('Validators.username', () {
     test('rejects usernames with uppercase or spaces', () {
-      expect(Validators.username('Ahmed Green'), isNotNull);
+      expect(Validators.username(l10n)('Ahmed Green'), isNotNull);
     });
 
     test('rejects usernames shorter than 3 characters', () {
-      expect(Validators.username('ab'), isNotNull);
+      expect(Validators.username(l10n)('ab'), isNotNull);
     });
 
     test('rejects usernames longer than 20 characters', () {
-      expect(Validators.username('a' * 21), isNotNull);
+      expect(Validators.username(l10n)('a' * 21), isNotNull);
     });
 
     test('accepts a valid username', () {
-      expect(Validators.username('ahmed.green'), isNull);
+      expect(Validators.username(l10n)('ahmed.green'), isNull);
     });
 
     test('accepts usernames with underscores and digits', () {
-      expect(Validators.username('ahmed_green_92'), isNull);
+      expect(Validators.username(l10n)('ahmed_green_92'), isNull);
     });
   });
 }
