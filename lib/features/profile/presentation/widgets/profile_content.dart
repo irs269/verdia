@@ -19,6 +19,7 @@ class ProfileContent extends StatelessWidget {
     required this.tabLabels,
     required this.tabViews,
     this.impactSummary,
+    this.eventsJoined,
   });
 
   final Profile profile;
@@ -26,6 +27,10 @@ class ProfileContent extends StatelessWidget {
   final int? following;
   final Widget actionButton;
   final Widget? impactSummary;
+
+  /// Nombre de campagnes (événements) rejointes — `null` tant que non chargé,
+  /// masqué dans ce cas plutôt que d'afficher un zéro trompeur.
+  final int? eventsJoined;
   final List<String> tabLabels;
   final List<Widget> tabViews;
 
@@ -84,6 +89,13 @@ class ProfileContent extends StatelessWidget {
                       _Stat(emoji: '⭐', value: '${profile.totalPoints}', label: 'points'),
                       const SizedBox(width: AppSpacing.lg),
                       _Stat(emoji: '🏆', value: '${profile.level}', label: 'niveau'),
+                      if (eventsJoined != null) ...[
+                        const SizedBox(width: AppSpacing.lg),
+                        _Stat(
+                            emoji: '📅',
+                            value: '$eventsJoined',
+                            label: eventsJoined == 1 ? 'campagne' : 'campagnes'),
+                      ],
                       if (following != null) ...[
                         const SizedBox(width: AppSpacing.lg),
                         GestureDetector(

@@ -13,6 +13,8 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../organizations/domain/organization.dart';
+import '../../../organizations/presentation/providers/organization_provider.dart';
 import '../../domain/event.dart';
 import '../providers/event_provider.dart';
 
@@ -44,6 +46,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   late LatLng? _location =
       widget.existing != null ? LatLng(widget.existing!.lat, widget.existing!.lng) : null;
   Uint8List? _newCover;
+  late String? _organizerOrgId = widget.existing?.organizerOrgId;
 
   bool get _isEditing => widget.existing != null;
 
@@ -110,6 +113,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             startsAt: startsAt,
             targetParticipants: int.tryParse(_targetController.text),
             newCoverBytes: _newCover,
+            organizerOrgId: _organizerOrgId,
           )
         : await notifier.publish(
             title: _titleController.text.trim(),
@@ -120,6 +124,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             startsAt: startsAt,
             targetParticipants: int.tryParse(_targetController.text),
             coverBytes: _newCover,
+            organizerOrgId: _organizerOrgId,
           );
     if (success && mounted) context.pop();
   }
@@ -217,6 +222,50 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   onTap: _pickLocation,
                 ),
                 const SizedBox(height: AppSpacing.md),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final orgsAsync = ref.watch(myOrganizationsProvider);
+                    final orgs = orgsAsync.valueOrNull ?? const <Organization>[];
+                    if (orgs.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Publier en tant que',
+                              style: Theme.of(context).textTheme.labelLarge),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String?>(
+                                isExpanded: true,
+                                value: _organizerOrgId,
+                                hint: const Text('Moi-même'),
+                                items: [
+                                  const DropdownMenuItem<String?>(
+                                    value: null,
+                                    child: Text('Moi-même'),
+                                  ),
+                                  for (final org in orgs)
+                                    DropdownMenuItem<String?>(
+                                      value: org.id,
+                                      child: Text(org.name),
+                                    ),
+                                ],
+                                onChanged: (value) => setState(() => _organizerOrgId = value),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 AppTextField(label: 'Ville', controller: _cityController),
                 const SizedBox(height: AppSpacing.md),
                 AppTextField(

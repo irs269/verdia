@@ -39,10 +39,14 @@ class EventCard extends ConsumerWidget {
     }
   }
 
+  bool get _isFinished =>
+      DateTime.now().isAfter(event.endsAt ?? event.startsAt) && event.status != 'cancelled';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actionsState = ref.watch(eventActionsControllerProvider);
     final isOrganizer = ref.watch(currentUserProvider)?.id == event.organizer.id;
+    final isFinished = _isFinished;
 
     return Container(
       decoration: BoxDecoration(
@@ -69,9 +73,13 @@ class EventCard extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat('EEEE d MMM · HH:mm', 'fr_FR').format(event.startsAt),
-                        style: const TextStyle(
-                            color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                        isFinished
+                            ? 'Terminé · ${DateFormat('d MMM', 'fr_FR').format(event.startsAt)}'
+                            : DateFormat('EEEE d MMM · HH:mm', 'fr_FR').format(event.startsAt),
+                        style: TextStyle(
+                            color: isFinished ? AppColors.textSecondary : AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                     if (isOrganizer)
@@ -98,6 +106,19 @@ class EventCard extends ConsumerWidget {
                 ),
                 Text(event.title,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                if (event.organizerOrgName != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.apartment_outlined,
+                          size: 12, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text('Organisé par ${event.organizerOrgName}',
+                          style:
+                              const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ],
                 if (event.location != null) ...[
                   const SizedBox(height: 2),
                   Text(event.location!,
@@ -122,16 +143,60 @@ class EventCard extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
-                AppButton(
-                  label: event.isJoinedByMe ? 'Je participe ✓' : 'Je participe',
-                  outlined: event.isJoinedByMe,
-                  isLoading: actionsState.isLoading,
-                  onPressed: () => ref.read(eventActionsControllerProvider.notifier).toggleJoin(
-                        event.id,
-                        isCurrentlyJoined: event.isJoinedByMe,
-                      ),
-                ),
+                if (isFinished)
+                  _EventBilan(event: event)
+                else
+                  AppButton(
+                    label: event.isJoinedByMe ? 'Je participe ✓' : 'Je participe',
+                    outlined: event.isJoinedByMe,
+                    isLoading: actionsState.isLoading,
+                    onPressed: () => ref.read(eventActionsControllerProvider.notifier).toggleJoin(
+                          event.id,
+                          isCurrentlyJoined: event.isJoinedByMe,
+                        ),
+                  ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bilan affiché à la place du bouton "Je participe" une fois l'événement
+/// terminé — voir audit, item "Statistiques de campagne".
+class _EventBilan extends StatelessWidget {
+  const _EventBilan({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = event.targetParticipants;
+    final reached = target != null && event.participantsCount >= target;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            reached ? Icons.emoji_events_outlined : Icons.groups_outlined,
+            size: 18,
+            color: reached ? AppColors.primary : AppColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              target != null
+                  ? (reached
+                      ? 'Objectif atteint : ${event.participantsCount}/$target participant(s)'
+                      : '${event.participantsCount}/$target participant(s) — objectif non atteint')
+                  : '${event.participantsCount} participant(s) au total',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],

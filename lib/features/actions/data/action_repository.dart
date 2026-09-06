@@ -9,7 +9,7 @@ import '../domain/eco_action.dart';
 
 const _actionSelect = '''
   id, author_id, title, description, quantity, quantity_unit, participants_count,
-  city, country, lat, lng, occurred_at, status, created_at, location_verified,
+  city, country, lat, lng, occurred_at, status, created_at, location_verified, zone_radius_m,
   action_categories(id, code, label, icon, color),
   impact_points(points)
 ''';
@@ -129,6 +129,7 @@ class ActionRepository {
     double? deviceLat,
     double? deviceLng,
     bool locationVerified = false,
+    double? zoneRadiusM,
     Uint8List? avantBytes,
     Uint8List? apresBytes,
     required List<Uint8List> mediaBytes,
@@ -152,6 +153,7 @@ class ActionRepository {
             'device_lat': deviceLat,
             'device_lng': deviceLng,
             'location_verified': locationVerified,
+            'zone_radius_m': zoneRadiusM,
           })
           .select('id')
           .single();

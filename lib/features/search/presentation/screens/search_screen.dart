@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
@@ -9,6 +10,7 @@ import '../../../../shared/widgets/profile_list_tile.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../challenges/presentation/widgets/challenge_card.dart';
 import '../../../events/presentation/widgets/event_card.dart';
+import '../../../hashtags/presentation/providers/hashtag_provider.dart';
 import '../../../posts/presentation/providers/feed_provider.dart';
 import '../../../posts/presentation/widgets/post_card.dart';
 import '../providers/search_provider.dart';
@@ -41,7 +43,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: TextField(
@@ -63,6 +65,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Tab(text: 'Publications'),
               Tab(text: 'Événements'),
               Tab(text: 'Défis'),
+              Tab(text: 'Hashtags'),
             ],
           ),
         ),
@@ -72,6 +75,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _PostResults(),
             _EventResults(),
             _ChallengeResults(),
+            _HashtagResults(),
           ],
         ),
       ),
@@ -232,6 +236,46 @@ class _ChallengeResults extends ConsumerWidget {
           itemCount: challenges.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
           itemBuilder: (context, index) => ChallengeCard(challenge: challenges[index]),
+        );
+      },
+    );
+  }
+}
+
+class _HashtagResults extends ConsumerWidget {
+  const _HashtagResults();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final query = ref.watch(searchQueryProvider);
+    if (query.trim().length < 2) return const _EmptyQuery();
+
+    final resultsAsync = ref.watch(hashtagSearchResultsProvider(query));
+    return resultsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text(error.toString())),
+      data: (hashtags) {
+        if (hashtags.isEmpty) {
+          return const Center(
+            child:
+                Text('Aucun hashtag trouvé.', style: TextStyle(color: AppColors.textSecondary)),
+          );
+        }
+        return ListView.separated(
+          itemCount: hashtags.length,
+          separatorBuilder: (_, _) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final hashtag = hashtags[index];
+            return ListTile(
+              leading: const Icon(Icons.tag, color: AppColors.primary),
+              title: Text('#${hashtag.tag}'),
+              trailing: Text(
+                '${hashtag.postCount} publication(s)',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+              onTap: () => context.push('/hashtags/${hashtag.tag}'),
+            );
+          },
         );
       },
     );

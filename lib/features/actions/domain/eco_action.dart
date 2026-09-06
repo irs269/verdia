@@ -19,6 +19,7 @@ class EcoAction {
     this.impactPoints,
     required this.createdAt,
     this.locationVerified = false,
+    this.zoneRadiusM,
   });
 
   factory EcoAction.fromMap(Map<String, dynamic> map) {
@@ -43,6 +44,7 @@ class EcoAction {
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       locationVerified: map['location_verified'] as bool? ?? false,
+      zoneRadiusM: (map['zone_radius_m'] as num?)?.toDouble(),
     );
   }
 
@@ -66,6 +68,11 @@ class EcoAction {
   /// Position choisie sur la carte confirmée (à ≤500m) par la position GPS
   /// réelle de l'appareil au moment de la publication — voir migration 0015.
   final bool locationVerified;
+
+  /// Rayon (mètres) de la zone dessinée autour de [lat]/[lng] sur la carte —
+  /// surtout pertinent pour la catégorie "nettoyage" (migration 0019).
+  /// `null` = pas de zone, juste un marqueur ponctuel.
+  final double? zoneRadiusM;
 
   String? get quantityLabel {
     if (quantity == null) return null;

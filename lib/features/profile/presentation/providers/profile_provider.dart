@@ -74,4 +74,22 @@ class ProfileController extends AutoDisposeAsyncNotifier<void> {
     if (!state.hasError) ref.invalidate(currentProfileProvider);
     return !state.hasError;
   }
+
+  Future<bool> setNotificationsEnabled(bool enabled) async {
+    final userId = ref.read(currentUserProvider)?.id;
+    if (userId == null) return false;
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref
+        .read(profileRepositoryProvider)
+        .setNotificationsEnabled(userId: userId, enabled: enabled));
+    if (!state.hasError) ref.invalidate(currentProfileProvider);
+    return !state.hasError;
+  }
+
+  Future<bool> deleteAccount() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref.read(profileRepositoryProvider).deleteAccount());
+    return !state.hasError;
+  }
 }

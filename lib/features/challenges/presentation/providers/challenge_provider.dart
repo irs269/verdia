@@ -103,6 +103,7 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
     required double targetValue,
     required String unit,
     required DateTime endsAt,
+    String? organizerOrgId,
   }) async {
     final userId = ref.read(currentUserProvider)?.id;
     if (userId == null) return false;
@@ -116,6 +117,7 @@ class CreateChallengeController extends AutoDisposeAsyncNotifier<void> {
           targetValue: targetValue,
           unit: unit,
           endsAt: endsAt,
+          organizerOrgId: organizerOrgId,
         ));
     if (!state.hasError) ref.invalidate(activeChallengesProvider);
     return !state.hasError;

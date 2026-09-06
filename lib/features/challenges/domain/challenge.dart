@@ -12,12 +12,15 @@ class Challenge {
     required this.endsAt,
     required this.participantsCount,
     required this.isJoinedByMe,
+    this.organizerOrgName,
+    this.organizerOrgLogoUrl,
   });
 
   factory Challenge.fromMap(Map<String, dynamic> map, {String? currentUserId}) {
     final participants = map['challenge_participants'] as List? ?? [];
     final isJoined = currentUserId != null &&
         participants.any((p) => (p as Map<String, dynamic>)['profile_id'] == currentUserId);
+    final org = map['organizations'] as Map<String, dynamic>?;
     return Challenge(
       id: map['id'] as String,
       category: map['action_categories'] != null
@@ -31,6 +34,8 @@ class Challenge {
       endsAt: DateTime.parse(map['ends_at'] as String),
       participantsCount: participants.length,
       isJoinedByMe: isJoined,
+      organizerOrgName: org?['name'] as String?,
+      organizerOrgLogoUrl: org?['logo_url'] as String?,
     );
   }
 
@@ -44,6 +49,11 @@ class Challenge {
   final DateTime endsAt;
   final int participantsCount;
   final bool isJoinedByMe;
+
+  /// Voir audit, item "Création de campagnes par une organisation"
+  /// (migration 0023). `null` = défi porté par un profil individuel.
+  final String? organizerOrgName;
+  final String? organizerOrgLogoUrl;
 
   double get progress => targetValue <= 0 ? 0 : (currentValue / targetValue).clamp(0, 1);
 
@@ -61,6 +71,8 @@ class Challenge {
       endsAt: endsAt,
       participantsCount: participantsCount ?? this.participantsCount,
       isJoinedByMe: isJoinedByMe ?? this.isJoinedByMe,
+      organizerOrgName: organizerOrgName,
+      organizerOrgLogoUrl: organizerOrgLogoUrl,
     );
   }
 }

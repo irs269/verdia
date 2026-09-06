@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../actions/domain/action_category.dart';
 import '../../../actions/presentation/providers/action_provider.dart';
+import '../../../organizations/presentation/providers/organization_provider.dart';
 import '../providers/challenge_provider.dart';
 
 class CreateChallengeScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
   final _unitController = TextEditingController(text: 'arbres');
   ActionCategory? _category;
   DateTime _endsAt = DateTime.now().add(const Duration(days: 30));
+  String? _organizerOrgId;
 
   @override
   void dispose() {
@@ -64,6 +66,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
           targetValue: double.parse(_targetController.text.replaceAll(',', '.')),
           unit: _unitController.text.trim(),
           endsAt: _endsAt,
+          organizerOrgId: _organizerOrgId,
         );
     if (success && mounted) context.pop();
   }
@@ -72,6 +75,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
   Widget build(BuildContext context) {
     final controllerState = ref.watch(createChallengeControllerProvider);
     final categoriesAsync = ref.watch(actionCategoriesProvider);
+    final myOrgs = ref.watch(myOrganizationsProvider).valueOrNull ?? const [];
 
     ref.listen(createChallengeControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -145,6 +149,37 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                     ),
                   ],
                 ),
+                if (myOrgs.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Publier en tant que', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        isExpanded: true,
+                        value: _organizerOrgId,
+                        hint: const Text('Moi-même'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Moi-même'),
+                          ),
+                          for (final org in myOrgs)
+                            DropdownMenuItem<String?>(
+                              value: org.id,
+                              child: Text(org.name),
+                            ),
+                        ],
+                        onChanged: (value) => setState(() => _organizerOrgId = value),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 Text('Date de fin', style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 8),

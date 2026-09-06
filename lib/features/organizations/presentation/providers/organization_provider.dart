@@ -22,6 +22,14 @@ final organizationByIdProvider =
   return ref.read(organizationRepositoryProvider).fetchById(id);
 });
 
+/// Organisations dont l'utilisateur connecté est membre — voir
+/// [OrganizationRepository.fetchMyOrganizations].
+final myOrganizationsProvider = FutureProvider.autoDispose<List<Organization>>((ref) {
+  final userId = ref.watch(currentUserProvider)?.id;
+  if (userId == null) return Future.value(<Organization>[]);
+  return ref.watch(organizationRepositoryProvider).fetchMyOrganizations(userId);
+});
+
 /// `false` tant que personne n'est connecté ou que le profil courant n'est
 /// pas `owner` de cette organisation.
 final isOrganizationOwnerProvider =

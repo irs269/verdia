@@ -40,6 +40,7 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
   final _cityController = TextEditingController();
   final _quantityController = TextEditingController();
   final _participantsController = TextEditingController(text: '1');
+  final _zoneRadiusController = TextEditingController();
   final List<Uint8List> _picked = [];
   Uint8List? _avantPhoto;
   Uint8List? _apresPhoto;
@@ -61,6 +62,7 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
     _cityController.dispose();
     _quantityController.dispose();
     _participantsController.dispose();
+    _zoneRadiusController.dispose();
     super.dispose();
   }
 
@@ -178,6 +180,9 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
           deviceLat: _devicePosition?.latitude,
           deviceLng: _devicePosition?.longitude,
           locationVerified: _locationVerified,
+          zoneRadiusM: _category?.code == 'nettoyage'
+              ? double.tryParse(_zoneRadiusController.text.replaceAll(',', '.'))
+              : null,
           avantBytes: _avantPhoto,
           apresBytes: _apresPhoto,
           mediaBytes: _picked,
@@ -296,6 +301,8 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
                       quantityController: _quantityController,
                       participantsController: _participantsController,
                       quantityLabel: _quantityLabelFor(_category?.code),
+                      showZoneRadius: _category?.code == 'nettoyage',
+                      zoneRadiusController: _zoneRadiusController,
                       picked: _picked,
                       onPickImages: _pickImages,
                       avantPhoto: _avantPhoto,
@@ -415,6 +422,8 @@ class _DetailsStep extends StatelessWidget {
     required this.quantityController,
     required this.participantsController,
     required this.quantityLabel,
+    required this.showZoneRadius,
+    required this.zoneRadiusController,
     required this.picked,
     required this.onPickImages,
     required this.avantPhoto,
@@ -438,6 +447,8 @@ class _DetailsStep extends StatelessWidget {
   final TextEditingController quantityController;
   final TextEditingController participantsController;
   final String quantityLabel;
+  final bool showZoneRadius;
+  final TextEditingController zoneRadiusController;
   final List<Uint8List> picked;
   final VoidCallback onPickImages;
   final Uint8List? avantPhoto;
@@ -542,6 +553,15 @@ class _DetailsStep extends StatelessWidget {
                       style: TextStyle(color: AppColors.primary, fontSize: 12)),
                 ],
               ),
+          ],
+          if (showZoneRadius && location != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              label: 'Rayon de la zone nettoyée (m, optionnel)',
+              hint: '50',
+              controller: zoneRadiusController,
+              keyboardType: TextInputType.number,
+            ),
           ],
           const SizedBox(height: AppSpacing.md),
           Text('Photos avant / après (optionnel)', style: Theme.of(context).textTheme.labelLarge),

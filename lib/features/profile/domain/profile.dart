@@ -12,6 +12,7 @@ class Profile {
     required this.level,
     required this.totalPoints,
     this.role = 'member',
+    this.notificationsEnabled = true,
   });
 
   factory Profile.fromMap(Map<String, dynamic> map) {
@@ -27,6 +28,7 @@ class Profile {
       level: map['level'] as int,
       totalPoints: map['total_points'] as int,
       role: map['role'] as String? ?? 'member',
+      notificationsEnabled: map['notifications_enabled'] as bool? ?? true,
     );
   }
 
@@ -41,6 +43,7 @@ class Profile {
   final int level;
   final int totalPoints;
   final String role;
+  final bool notificationsEnabled;
 
   String get fullName => '$firstName $lastName';
 
@@ -62,6 +65,7 @@ class Profile {
     String? bio,
     String? city,
     String? country,
+    bool? notificationsEnabled,
   }) {
     return Profile(
       id: id,
@@ -75,6 +79,7 @@ class Profile {
       level: level,
       totalPoints: totalPoints,
       role: role,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 }

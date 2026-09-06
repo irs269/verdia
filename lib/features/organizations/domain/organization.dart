@@ -59,6 +59,7 @@ class Organization {
     this.country,
     this.website,
     required this.verified,
+    required this.createdAt,
   });
 
   factory Organization.fromMap(Map<String, dynamic> map) {
@@ -72,6 +73,7 @@ class Organization {
       country: map['country'] as String?,
       website: map['website'] as String?,
       verified: map['verified'] as bool,
+      createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
 
@@ -84,6 +86,7 @@ class Organization {
   final String? country;
   final String? website;
   final bool verified;
+  final DateTime createdAt;
 
   String? get location {
     if (city == null && country == null) return null;

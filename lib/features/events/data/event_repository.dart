@@ -8,9 +8,10 @@ import '../../../core/utils/search.dart';
 import '../domain/event.dart';
 
 const _eventSelect = '''
-  id, organizer_id, title, description, cover_url, lat, lng, city, country,
+  id, organizer_id, organizer_org_id, title, description, cover_url, lat, lng, city, country,
   starts_at, ends_at, target_participants, status,
   profiles!events_organizer_id_fkey(username, first_name, last_name, avatar_url),
+  organizations(name, logo_url),
   event_participants(profile_id)
 ''';
 
@@ -69,6 +70,7 @@ class EventRepository {
     DateTime? endsAt,
     int? targetParticipants,
     Uint8List? coverBytes,
+    String? organizerOrgId,
   }) async {
     try {
       String? coverUrl;
@@ -86,6 +88,7 @@ class EventRepository {
           .from('events')
           .insert({
             'organizer_id': organizerId,
+            'organizer_org_id': organizerOrgId,
             'title': title,
             'description': description,
             'cover_url': coverUrl,
@@ -128,6 +131,7 @@ class EventRepository {
     DateTime? endsAt,
     int? targetParticipants,
     Uint8List? newCoverBytes,
+    String? organizerOrgId,
   }) async {
     try {
       String? coverUrl;
@@ -151,6 +155,7 @@ class EventRepository {
         'starts_at': startsAt.toIso8601String(),
         'ends_at': endsAt?.toIso8601String(),
         'target_participants': targetParticipants,
+        'organizer_org_id': organizerOrgId,
         if (coverUrl != null) 'cover_url': coverUrl,
       }).eq('id', eventId);
     } catch (_) {
@@ -173,6 +178,21 @@ class EventRepository {
           .insert({'event_id': eventId, 'profile_id': profileId});
     } catch (_) {
       throw const AppException("Impossible de rejoindre l'événement.");
+    }
+  }
+
+  /// Compte les événements rejoints (organisateur inclus, puisqu'il rejoint
+  /// automatiquement son propre événement à la création) — utilisé pour le
+  /// compteur "campagnes rejointes" du profil.
+  Future<int> countJoinedEvents(String profileId) async {
+    try {
+      final data = await _client
+          .from('event_participants')
+          .select('event_id')
+          .eq('profile_id', profileId);
+      return (data as List).length;
+    } catch (_) {
+      return 0;
     }
   }
 

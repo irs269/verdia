@@ -36,6 +36,17 @@ class ChallengeCard extends ConsumerWidget {
             '${challenge.category?.icon ?? '🌍'} ${challenge.title}',
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
           ),
+          if (challenge.organizerOrgName != null) ...[
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Icon(Icons.apartment_outlined, size: 12, color: AppColors.textSecondary),
+                const SizedBox(width: 4),
+                Text('Organisé par ${challenge.organizerOrgName}',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ],
           const SizedBox(height: 4),
           Text(challenge.description, style: const TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.sm),

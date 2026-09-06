@@ -11,6 +11,11 @@ final eventRepositoryProvider = Provider<EventRepository>((ref) {
   return EventRepository(SupabaseService.client);
 });
 
+final joinedEventsCountProvider =
+    FutureProvider.autoDispose.family<int, String>((ref, profileId) {
+  return ref.watch(eventRepositoryProvider).countJoinedEvents(profileId);
+});
+
 class EventsListState {
   const EventsListState({
     this.events = const [],
@@ -108,6 +113,7 @@ class CreateEventController extends AutoDisposeAsyncNotifier<void> {
     required DateTime startsAt,
     int? targetParticipants,
     Uint8List? coverBytes,
+    String? organizerOrgId,
   }) async {
     final userId = ref.read(currentUserProvider)?.id;
     if (userId == null) return false;
@@ -124,6 +130,7 @@ class CreateEventController extends AutoDisposeAsyncNotifier<void> {
           startsAt: startsAt,
           targetParticipants: targetParticipants,
           coverBytes: coverBytes,
+          organizerOrgId: organizerOrgId,
         ));
     if (!state.hasError) ref.invalidate(upcomingEventsProvider);
     return !state.hasError;
@@ -140,6 +147,7 @@ class CreateEventController extends AutoDisposeAsyncNotifier<void> {
     required DateTime startsAt,
     int? targetParticipants,
     Uint8List? newCoverBytes,
+    String? organizerOrgId,
   }) async {
     final userId = ref.read(currentUserProvider)?.id;
     if (userId == null) return false;
@@ -157,6 +165,7 @@ class CreateEventController extends AutoDisposeAsyncNotifier<void> {
           startsAt: startsAt,
           targetParticipants: targetParticipants,
           newCoverBytes: newCoverBytes,
+          organizerOrgId: organizerOrgId,
         ));
     if (!state.hasError) ref.invalidate(upcomingEventsProvider);
     return !state.hasError;

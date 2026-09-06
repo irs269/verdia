@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -22,6 +23,53 @@ class MapScreen extends ConsumerStatefulWidget {
 
 class _MapScreenState extends ConsumerState<MapScreen> {
   String _filter = 'all'; // 'all' | category code | 'events' | 'reports'
+  final _mapController = MapController();
+  bool _locating = false;
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  /// Centre la carte sur la position GPS réelle de l'utilisateur — voir
+  /// audit, item "Géolocalisation de l'utilisateur". Best-effort : tout
+  /// échec (permission refusée, service désactivé) affiche un message clair
+  /// sans jamais bloquer l'utilisation de la carte.
+  Future<void> _goToMyLocation() async {
+    setState(() => _locating = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _showLocationError('Active la localisation pour utiliser cette fonctionnalité.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showLocationError("Autorise l'accès à la position pour utiliser cette fonctionnalité.");
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+      _mapController.move(LatLng(position.latitude, position.longitude), 14);
+    } catch (_) {
+      _showLocationError('Position indisponible pour le moment.');
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  void _showLocationError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +93,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final reports = (_filter == 'all' || _filter == 'reports')
         ? reportsState.reports
         : <EnvironmentalReport>[];
+
+    final zones = <CircleMarker>[
+      for (final action in actions)
+        if (action.zoneRadiusM != null)
+          CircleMarker(
+            point: LatLng(action.lat!, action.lng!),
+            radius: action.zoneRadiusM!,
+            useRadiusInMeter: true,
+            color: action.category.color.withValues(alpha: 0.15),
+            borderColor: action.category.color,
+            borderStrokeWidth: 1.5,
+          ),
+    ];
 
     final markers = <Marker>[
       for (final action in actions)
@@ -83,6 +144,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       body: Stack(
         children: [
           FlutterMap(
+            mapController: _mapController,
             options: const MapOptions(
               initialCenter: MapConstants.defaultCenter,
               initialZoom: MapConstants.defaultZoom,
@@ -92,6 +154,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 urlTemplate: MapConstants.tileUrl,
                 userAgentPackageName: MapConstants.userAgentPackageName,
               ),
+              CircleLayer(circles: zones),
               MarkerLayer(markers: markers),
             ],
           ),
@@ -161,6 +224,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
             ),
+          Positioned(
+            right: AppSpacing.md,
+            bottom: AppSpacing.md,
+            child: SafeArea(
+              top: false,
+              child: FloatingActionButton.small(
+                heroTag: 'my-location',
+                tooltip: 'Ma position',
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.primary,
+                onPressed: _locating ? null : _goToMyLocation,
+                child: _locating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+              ),
+            ),
+          ),
         ],
       ),
     );

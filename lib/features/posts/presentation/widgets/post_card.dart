@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../shared/widgets/hashtag_text.dart';
 import '../../../actions/domain/eco_action.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../moderation/domain/content_report.dart';
@@ -217,14 +218,14 @@ class PostCard extends ConsumerWidget {
             Text(post.action!.title,
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
             const SizedBox(height: 2),
-            Text(post.action!.description),
+            HashtagText(post.action!.description),
             if (post.action!.quantityLabel != null) ...[
               const SizedBox(height: 4),
               Text('📊 ${post.action!.quantityLabel} · ${post.action!.participantsCount} participant(s)',
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ],
           ] else
-            Text(post.content),
+            HashtagText(post.content),
           if (post.media.any((m) => m.label != null)) ...[
             const SizedBox(height: AppSpacing.sm),
             _BeforeAfterPhotos(media: post.media),

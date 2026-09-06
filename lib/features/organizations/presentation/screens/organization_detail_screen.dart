@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
@@ -118,6 +119,36 @@ class OrganizationDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ],
+              const SizedBox(height: AppSpacing.lg),
+              const Divider(),
+              const SizedBox(height: AppSpacing.md),
+              Text('Bilan', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Consumer(
+                builder: (context, ref, _) {
+                  final membersAsync = ref.watch(organizationMembersProvider(organizationId));
+                  final memberCount = membersAsync.valueOrNull?.length;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.groups_outlined,
+                          value: memberCount?.toString() ?? '—',
+                          label: memberCount == 1 ? 'membre' : 'membres',
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.calendar_today_outlined,
+                          value: DateFormat('MMM yyyy', 'fr_FR').format(org.createdAt),
+                          label: 'depuis',
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
               if (!org.verified) ...[
                 const SizedBox(height: AppSpacing.lg),
                 Container(
@@ -143,6 +174,34 @@ class OrganizationDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.icon, required this.value, required this.label});
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        ],
       ),
     );
   }

@@ -32,12 +32,14 @@ void main() {
         'country': 'Comores',
         'website': 'https://example.org',
         'verified': true,
+        'created_at': '2026-01-15T10:00:00Z',
       });
 
       expect(org.id, 'org-1');
       expect(org.name, 'Ulanga Comores');
       expect(org.verified, isTrue);
       expect(org.location, 'Moroni, Comores');
+      expect(org.createdAt, DateTime.parse('2026-01-15T10:00:00Z'));
     });
 
     test('location is null when neither city nor country is set', () {
@@ -51,6 +53,7 @@ void main() {
         'country': null,
         'website': null,
         'verified': false,
+        'created_at': '2026-01-15T10:00:00Z',
       });
 
       expect(org.location, isNull);

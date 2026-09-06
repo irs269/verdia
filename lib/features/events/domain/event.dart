@@ -17,12 +17,16 @@ class Event {
     required this.status,
     required this.participantsCount,
     required this.isJoinedByMe,
+    this.organizerOrgId,
+    this.organizerOrgName,
+    this.organizerOrgLogoUrl,
   });
 
   factory Event.fromMap(Map<String, dynamic> map, {String? currentUserId}) {
     final participants = map['event_participants'] as List? ?? [];
     final isJoined = currentUserId != null &&
         participants.any((p) => (p as Map<String, dynamic>)['profile_id'] == currentUserId);
+    final org = map['organizations'] as Map<String, dynamic>?;
     return Event(
       id: map['id'] as String,
       organizer: PostAuthor.fromMap(
@@ -42,6 +46,9 @@ class Event {
       status: map['status'] as String,
       participantsCount: participants.length,
       isJoinedByMe: isJoined,
+      organizerOrgId: map['organizer_org_id'] as String?,
+      organizerOrgName: org?['name'] as String?,
+      organizerOrgLogoUrl: org?['logo_url'] as String?,
     );
   }
 
@@ -60,6 +67,13 @@ class Event {
   final String status;
   final int participantsCount;
   final bool isJoinedByMe;
+
+  /// Renseignés si l'événement a été publié au nom d'une organisation — voir
+  /// audit, item "Création de campagnes par une organisation" (migration
+  /// 0023). `null` = événement porté par le profil [organizer] lui-même.
+  final String? organizerOrgId;
+  final String? organizerOrgName;
+  final String? organizerOrgLogoUrl;
 
   String? get location {
     if (city == null && country == null) return null;
@@ -90,6 +104,9 @@ class Event {
       status: status,
       participantsCount: participantsCount ?? this.participantsCount,
       isJoinedByMe: isJoinedByMe ?? this.isJoinedByMe,
+      organizerOrgId: organizerOrgId,
+      organizerOrgName: organizerOrgName,
+      organizerOrgLogoUrl: organizerOrgLogoUrl,
     );
   }
 }

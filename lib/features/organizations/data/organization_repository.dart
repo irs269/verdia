@@ -23,6 +23,25 @@ class OrganizationRepository {
     }
   }
 
+  /// Organisations dont [profileId] est membre (propriétaire ou non) — sert
+  /// au sélecteur "Publier en tant que" lors de la création d'un
+  /// événement/défi (voir audit, item "Création de campagnes par une
+  /// organisation").
+  Future<List<Organization>> fetchMyOrganizations(String profileId) async {
+    try {
+      final data = await _client
+          .from('organization_members')
+          .select('organizations(*)')
+          .eq('profile_id', profileId);
+      return (data as List)
+          .map((e) => Organization.fromMap((e as Map<String, dynamic>)['organizations']
+              as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<Organization> fetchById(String id) async {
     try {
       final data = await _client.from('organizations').select().eq('id', id).single();

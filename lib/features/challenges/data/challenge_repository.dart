@@ -5,8 +5,9 @@ import '../../../core/utils/search.dart';
 import '../domain/challenge.dart';
 
 const _challengeSelect = '''
-  id, title, description, target_value, current_value, unit, ends_at,
+  id, title, description, target_value, current_value, unit, ends_at, organizer_org_id,
   action_categories(id, code, label, icon, color),
+  organizations(name, logo_url),
   challenge_participants(profile_id)
 ''';
 
@@ -58,12 +59,14 @@ class ChallengeRepository {
     required double targetValue,
     required String unit,
     required DateTime endsAt,
+    String? organizerOrgId,
   }) async {
     try {
       final challenge = await _client
           .from('challenges')
           .insert({
             'organizer_id': organizerId,
+            'organizer_org_id': organizerOrgId,
             'category_id': categoryId,
             'title': title,
             'description': description,

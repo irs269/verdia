@@ -13,6 +13,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/events/domain/event.dart';
 import '../../features/events/presentation/screens/create_event_screen.dart';
+import '../../features/hashtags/presentation/screens/hashtag_posts_screen.dart';
 import '../../features/home/presentation/screens/home_shell.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../../features/map/presentation/screens/location_picker_screen.dart';
@@ -34,6 +35,8 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/user_profile_screen.dart';
 import '../../features/reports/presentation/screens/create_report_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/stats/presentation/screens/community_stats_screen.dart';
 import '../services/supabase_service.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -65,6 +68,9 @@ abstract final class AppRoutes {
   static const organizationDetail = '/organizations/:id';
   static const editOrganization = '/organizations/:id/edit';
   static const moderation = '/moderation';
+  static const communityStats = '/stats';
+  static const settings = '/settings';
+  static const hashtag = '/hashtags/:tag';
 }
 
 final _authRoutes = {
@@ -158,6 +164,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.leaderboard,
         builder: (_, _) => const LeaderboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.communityStats,
+        builder: (_, _) => const CommunityStatsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (_, _) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.hashtag,
+        builder: (_, state) => HashtagPostsScreen(tag: state.pathParameters['tag']!),
       ),
       GoRoute(
         path: AppRoutes.createReport,

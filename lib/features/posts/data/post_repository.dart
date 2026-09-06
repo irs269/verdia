@@ -22,7 +22,7 @@ const _postSelect = '''
   comments(count),
   actions(
     id, author_id, title, description, quantity, quantity_unit, participants_count,
-    city, country, occurred_at, status, created_at, location_verified,
+    city, country, lat, lng, occurred_at, status, created_at, location_verified, zone_radius_m,
     action_categories(id, code, label, icon, color),
     impact_points(points)
   )
@@ -183,6 +183,29 @@ class PostRepository {
       return _attachViewerState(posts, currentUserId);
     } catch (_) {
       throw const AppException('Impossible de rechercher les publications.');
+    }
+  }
+
+  /// Publications portant [tag] (sans le `#`) — voir migration 0024, les
+  /// lignes `post_hashtags` sont écrites uniquement par le trigger
+  /// `extract_hashtags`, jamais par ce repository.
+  Future<List<Post>> fetchPostsByHashtag(String tag, {String? currentUserId}) async {
+    try {
+      final data = await _client
+          .from('post_hashtags')
+          .select('posts!inner($_postSelect), hashtags!inner(tag)')
+          .eq('hashtags.tag', tag.toLowerCase())
+          .order('post_id', ascending: false)
+          .limit(50);
+
+      final posts = (data as List)
+          .map((e) => Post.fromMap((e as Map<String, dynamic>)['posts'] as Map<String, dynamic>))
+          .toList();
+
+      if (currentUserId == null || posts.isEmpty) return posts;
+      return _attachViewerState(posts, currentUserId);
+    } catch (_) {
+      throw const AppException('Impossible de charger les publications de ce hashtag.');
     }
   }
 

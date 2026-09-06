@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../actions/presentation/widgets/impact_summary_row.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../badges/presentation/widgets/badges_tab.dart';
+import '../../../events/presentation/providers/event_provider.dart';
 import '../../../moderation/presentation/providers/moderation_provider.dart';
 import '../../../posts/presentation/widgets/saved_posts_tab.dart';
 import '../../../posts/presentation/widgets/user_posts_tab.dart';
@@ -43,9 +43,14 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => context.push('/leaderboard'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Se déconnecter',
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            icon: const Icon(Icons.public_outlined),
+            tooltip: 'Impact de la communauté',
+            onPressed: () => context.push('/stats'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Paramètres',
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
@@ -70,10 +75,12 @@ class ProfileScreen extends ConsumerWidget {
         data: (profile) {
           if (profile == null) return const SizedBox.shrink();
           final counts = ref.watch(followCountsProvider(profile.id)).valueOrNull;
+          final eventsJoined = ref.watch(joinedEventsCountProvider(profile.id)).valueOrNull;
           return ProfileContent(
             profile: profile,
             followers: counts?.followers,
             following: counts?.following,
+            eventsJoined: eventsJoined,
             impactSummary: ImpactSummaryRow(profileId: profile.id),
             actionButton: AppButton(
               label: 'Modifier le profil',

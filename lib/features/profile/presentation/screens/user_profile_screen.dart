@@ -6,6 +6,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../actions/presentation/widgets/impact_summary_row.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../badges/presentation/widgets/badges_tab.dart';
+import '../../../events/presentation/providers/event_provider.dart';
 import '../../../posts/presentation/widgets/user_posts_tab.dart';
 import '../providers/follow_provider.dart';
 import '../providers/profile_provider.dart';
@@ -34,11 +35,13 @@ class UserProfileScreen extends ConsumerWidget {
         ),
         data: (profile) {
           final counts = ref.watch(followCountsProvider(userId)).valueOrNull;
+          final eventsJoined = ref.watch(joinedEventsCountProvider(userId)).valueOrNull;
 
           return ProfileContent(
             profile: profile,
             followers: counts?.followers,
             following: counts?.following,
+            eventsJoined: eventsJoined,
             impactSummary: ImpactSummaryRow(profileId: userId),
             actionButton: isOwnProfile
                 ? const SizedBox.shrink()

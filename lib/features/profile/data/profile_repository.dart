@@ -97,4 +97,34 @@ class ProfileRepository {
       throw const AppException("L'envoi de la photo a échoué.");
     }
   }
+
+  /// Voir migration 0022 — un unique interrupteur global, appliqué via un
+  /// trigger `before insert` sur `notifications` plutôt que dans le code
+  /// Flutter (les notifications sont créées par des triggers Postgres
+  /// indépendants de toute requête client).
+  Future<void> setNotificationsEnabled({
+    required String userId,
+    required bool enabled,
+  }) async {
+    try {
+      await _client
+          .from('profiles')
+          .update({'notifications_enabled': enabled}).eq('id', userId);
+    } catch (_) {
+      throw const AppException('La mise à jour des préférences a échoué.');
+    }
+  }
+
+  /// Supprime définitivement le compte de l'utilisateur connecté via la
+  /// fonction RPC `delete_own_account` (migration 0022, `security definer` —
+  /// seul moyen d'atteindre `auth.users` sans clé service-role). Cascade sur
+  /// tout le contenu de l'utilisateur. Irréversible : l'appelant doit avoir
+  /// déjà obtenu une confirmation explicite.
+  Future<void> deleteAccount() async {
+    try {
+      await _client.rpc('delete_own_account');
+    } catch (_) {
+      throw const AppException('La suppression du compte a échoué.');
+    }
+  }
 }
