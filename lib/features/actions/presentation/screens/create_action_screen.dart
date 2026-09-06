@@ -166,7 +166,7 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
     final quantity = double.tryParse(_quantityController.text.replaceAll(',', '.'));
     final occurredAt =
         DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
-    final success = await ref.read(createActionControllerProvider.notifier).publish(
+    final status = await ref.read(createActionControllerProvider.notifier).publish(
           categoryId: _category!.id,
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
@@ -187,12 +187,16 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
           apresBytes: _apresPhoto,
           mediaBytes: _picked,
         );
-    if (!success || !mounted) return;
+    if (status == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     context.pop();
     messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Action publiée, en attente de validation par un modérateur."),
+      SnackBar(
+        content: Text(
+          status == 'verified'
+              ? 'Action publiée et validée, points crédités !'
+              : "Action publiée, en attente de validation par un modérateur.",
+        ),
       ),
     );
   }
@@ -767,7 +771,8 @@ class _PreviewStep extends StatelessWidget {
               style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           const Text(
-            'Ces points seront crédités une fois ton action validée par un modérateur.',
+            "Ces points sont crédités immédiatement si l'action est reconnue dans le périmètre de VERDIA, "
+            "sinon un modérateur devra la valider.",
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],

@@ -107,13 +107,19 @@ class ActionRepository {
   }
 
   /// Crée l'action, l'auteur comme premier participant, la publication
-  /// associée et ses médias. Le statut par défaut est 'pending' (migration
-  /// 0017) : les points ne sont crédités qu'une fois qu'un modérateur la
-  /// fait passer à 'verified' via [moderateAction]. [avantBytes]/[apresBytes]
-  /// sont taguées `label` dans
+  /// associée et ses médias. Le statut initial est décidé par le trigger
+  /// serveur `auto_moderate_action` (migration 0025) : une analyse de
+  /// mots-clés du titre/description détermine si l'action est dans le
+  /// périmètre écologique de VERDIA — si oui, elle est vérifiée
+  /// immédiatement (points crédités tout de suite) ; sinon elle reste
+  /// 'pending' et seul un modérateur peut la valider via [moderateAction].
+  /// [avantBytes]/[apresBytes] sont taguées `label` dans
   /// `post_media` (migration 0015) et uploadées avant la galerie générale
   /// pour que leur `position` (0, puis 1) soit stable.
-  Future<void> createAction({
+  ///
+  /// Retourne le statut réel de l'action après création ('verified' ou
+  /// 'pending') pour que l'écran de création affiche le bon message.
+  Future<String> createAction({
     required String authorId,
     required String categoryId,
     required String title,
@@ -155,9 +161,10 @@ class ActionRepository {
             'location_verified': locationVerified,
             'zone_radius_m': zoneRadiusM,
           })
-          .select('id')
+          .select('id, status')
           .single();
       final actionId = action['id'] as String;
+      final status = action['status'] as String;
 
       await _client
           .from('action_participants')
@@ -199,6 +206,8 @@ class ActionRepository {
       for (final bytes in mediaBytes) {
         await uploadMedia(bytes, position++);
       }
+
+      return status;
     } catch (_) {
       throw const AppException("La création de l'action a échoué. Réessaie.");
     }

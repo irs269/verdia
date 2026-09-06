@@ -113,7 +113,9 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<bool> publish({
+  /// Retourne le statut réel ('verified' ou 'pending', voir migration 0025)
+  /// pour que l'écran affiche le bon message, ou `null` en cas d'échec.
+  Future<String?> publish({
     required String categoryId,
     required String title,
     required String description,
@@ -134,30 +136,33 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
     required List<Uint8List> mediaBytes,
   }) async {
     final userId = ref.read(currentUserProvider)?.id;
-    if (userId == null) return false;
+    if (userId == null) return null;
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(actionRepositoryProvider).createAction(
-          authorId: userId,
-          categoryId: categoryId,
-          title: title,
-          description: description,
-          quantity: quantity,
-          quantityUnit: quantityUnit,
-          participantsCount: participantsCount,
-          city: city,
-          country: country,
-          lat: lat,
-          lng: lng,
-          occurredAt: occurredAt,
-          deviceLat: deviceLat,
-          deviceLng: deviceLng,
-          locationVerified: locationVerified,
-          zoneRadiusM: zoneRadiusM,
-          avantBytes: avantBytes,
-          apresBytes: apresBytes,
-          mediaBytes: mediaBytes,
-        ));
+    String? status;
+    state = await AsyncValue.guard(() async {
+      status = await ref.read(actionRepositoryProvider).createAction(
+            authorId: userId,
+            categoryId: categoryId,
+            title: title,
+            description: description,
+            quantity: quantity,
+            quantityUnit: quantityUnit,
+            participantsCount: participantsCount,
+            city: city,
+            country: country,
+            lat: lat,
+            lng: lng,
+            occurredAt: occurredAt,
+            deviceLat: deviceLat,
+            deviceLng: deviceLng,
+            locationVerified: locationVerified,
+            zoneRadiusM: zoneRadiusM,
+            avantBytes: avantBytes,
+            apresBytes: apresBytes,
+            mediaBytes: mediaBytes,
+          );
+    });
     if (!state.hasError) {
       ref.invalidate(feedProvider(FeedType.forYou));
       ref.invalidate(feedProvider(FeedType.following));
@@ -168,6 +173,6 @@ class CreateActionController extends AutoDisposeAsyncNotifier<void> {
       ref.invalidate(userBadgesProvider(userId));
       ref.invalidate(activeChallengesProvider);
     }
-    return !state.hasError;
+    return state.hasError ? null : status;
   }
 }
