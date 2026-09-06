@@ -46,9 +46,9 @@
   "navProfile": "Profil",
 
   "feedForYouTab": "Pour toi",
-  "feedFollowingTab": "Abonnements",
+  "feedFollowingTab": "Amis",
   "feedEmptyForYou": "Aucune publication pour le moment 🌱",
-  "feedEmptyFollowing": "Suis des membres pour voir leurs actions ici.",
+  "feedEmptyFollowing": "Ajoute des amis pour voir leurs actions ici.",
 
   "emailRequired": "Email requis",
   "emailInvalid": "Email invalide",

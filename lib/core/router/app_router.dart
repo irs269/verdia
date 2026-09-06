@@ -25,10 +25,14 @@ import '../../features/organizations/presentation/screens/create_organization_sc
 import '../../features/organizations/presentation/screens/edit_organization_screen.dart';
 import '../../features/organizations/presentation/screens/organization_detail_screen.dart';
 import '../../features/organizations/presentation/screens/organizations_list_screen.dart';
+import '../../features/messaging/domain/conversation.dart';
+import '../../features/messaging/presentation/screens/chat_screen.dart';
+import '../../features/messaging/presentation/screens/conversations_list_screen.dart';
+import '../../features/messaging/presentation/screens/create_group_screen.dart';
+import '../../features/messaging/presentation/screens/new_conversation_screen.dart';
 import '../../features/posts/presentation/screens/comments_screen.dart';
 import '../../features/posts/presentation/screens/feed_screen.dart';
 import '../../features/profile/domain/profile.dart';
-import '../../features/profile/presentation/providers/follow_provider.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/follow_list_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -54,8 +58,7 @@ abstract final class AppRoutes {
   static const editProfile = '/profile/edit';
   static const postComments = '/posts/:id/comments';
   static const userProfile = '/users/:id';
-  static const followers = '/users/:id/followers';
-  static const following = '/users/:id/following';
+  static const friends = '/users/:id/friends';
   static const pickLocation = '/map/pick-location';
   static const createEvent = '/events/create';
   static const createChallenge = '/challenges/create';
@@ -69,6 +72,10 @@ abstract final class AppRoutes {
   static const editOrganization = '/organizations/:id/edit';
   static const moderation = '/moderation';
   static const communityStats = '/stats';
+  static const messages = '/messages';
+  static const newConversation = '/messages/new';
+  static const newGroup = '/messages/new/group';
+  static const chat = '/messages/:id';
   static const settings = '/settings';
   static const hashtag = '/hashtags/:tag';
 }
@@ -135,18 +142,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             UserProfileScreen(userId: state.pathParameters['id']!),
       ),
       GoRoute(
-        path: AppRoutes.followers,
-        builder: (_, state) => FollowListScreen(
-          profileId: state.pathParameters['id']!,
-          type: FollowListType.followers,
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.following,
-        builder: (_, state) => FollowListScreen(
-          profileId: state.pathParameters['id']!,
-          type: FollowListType.following,
-        ),
+        path: AppRoutes.friends,
+        builder: (_, state) => FollowListScreen(profileId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.pickLocation,
@@ -176,6 +173,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.hashtag,
         builder: (_, state) => HashtagPostsScreen(tag: state.pathParameters['tag']!),
+      ),
+      GoRoute(
+        path: AppRoutes.messages,
+        builder: (_, _) => const ConversationsListScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.newConversation,
+        builder: (_, _) => const NewConversationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.newGroup,
+        builder: (_, _) => const CreateGroupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.chat,
+        builder: (_, state) => ChatScreen(args: state.extra! as ChatScreenArgs),
       ),
       GoRoute(
         path: AppRoutes.createReport,

@@ -15,12 +15,11 @@ const _profile = Profile(
   totalPoints: 65,
 );
 
-Widget _wrap({int? followers, int? following, Widget? impactSummary}) {
+Widget _wrap({int? friends, Widget? impactSummary}) {
   return MaterialApp(
     home: ProfileContent(
       profile: _profile,
-      followers: followers,
-      following: following,
+      friends: friends,
       impactSummary: impactSummary,
       actionButton: const Text('Modifier le profil'),
       tabLabels: const ['Mes actions', 'Mes badges'],
@@ -41,18 +40,16 @@ void main() {
     expect(find.text('🏆 2'), findsOneWidget);
   });
 
-  testWidgets('hides follow stats when counts are not provided', (tester) async {
+  testWidgets('hides friend stat when count is not provided', (tester) async {
     await tester.pumpWidget(_wrap());
-    expect(find.text('abonnements'), findsNothing);
-    expect(find.text('abonnés'), findsNothing);
+    expect(find.text('amis'), findsNothing);
+    expect(find.text('ami'), findsNothing);
   });
 
-  testWidgets('shows follow stats once counts are provided', (tester) async {
-    await tester.pumpWidget(_wrap(followers: 12, following: 34));
+  testWidgets('shows friend stat once count is provided', (tester) async {
+    await tester.pumpWidget(_wrap(friends: 34));
     expect(find.text('34'), findsOneWidget);
-    expect(find.text('12'), findsOneWidget);
-    expect(find.text('abonnements'), findsOneWidget);
-    expect(find.text('abonnés'), findsOneWidget);
+    expect(find.text('amis'), findsOneWidget);
   });
 
   testWidgets('renders the provided action button and tab labels', (tester) async {

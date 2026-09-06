@@ -74,12 +74,11 @@ class ProfileScreen extends ConsumerWidget {
         ),
         data: (profile) {
           if (profile == null) return const SizedBox.shrink();
-          final counts = ref.watch(followCountsProvider(profile.id)).valueOrNull;
+          final friendCount = ref.watch(friendCountProvider(profile.id)).valueOrNull;
           final eventsJoined = ref.watch(joinedEventsCountProvider(profile.id)).valueOrNull;
           return ProfileContent(
             profile: profile,
-            followers: counts?.followers,
-            following: counts?.following,
+            friends: friendCount,
             eventsJoined: eventsJoined,
             impactSummary: ImpactSummaryRow(profileId: profile.id),
             actionButton: AppButton(

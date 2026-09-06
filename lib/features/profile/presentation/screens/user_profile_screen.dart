@@ -34,13 +34,12 @@ class UserProfileScreen extends ConsumerWidget {
           ),
         ),
         data: (profile) {
-          final counts = ref.watch(followCountsProvider(userId)).valueOrNull;
+          final friendCount = ref.watch(friendCountProvider(userId)).valueOrNull;
           final eventsJoined = ref.watch(joinedEventsCountProvider(userId)).valueOrNull;
 
           return ProfileContent(
             profile: profile,
-            followers: counts?.followers,
-            following: counts?.following,
+            friends: friendCount,
             eventsJoined: eventsJoined,
             impactSummary: ImpactSummaryRow(profileId: userId),
             actionButton: isOwnProfile
@@ -71,13 +70,13 @@ class _FollowButton extends ConsumerWidget {
     return isFollowingAsync.when(
       loading: () => const AppButton(label: '…', onPressed: null),
       error: (_, _) => AppButton(
-        label: 'Suivre',
+        label: 'Ajouter en ami',
         onPressed: () => ref
             .read(followControllerProvider.notifier)
             .toggleFollow(userId, isCurrentlyFollowing: false),
       ),
       data: (isFollowing) => AppButton(
-        label: isFollowing ? 'Abonné(e)' : 'Suivre',
+        label: isFollowing ? 'Ami ✓' : 'Ajouter en ami',
         outlined: isFollowing,
         isLoading: controllerState.isLoading,
         onPressed: () => ref

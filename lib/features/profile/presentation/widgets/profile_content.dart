@@ -13,8 +13,7 @@ class ProfileContent extends StatelessWidget {
   const ProfileContent({
     super.key,
     required this.profile,
-    required this.followers,
-    required this.following,
+    required this.friends,
     required this.actionButton,
     required this.tabLabels,
     required this.tabViews,
@@ -23,8 +22,10 @@ class ProfileContent extends StatelessWidget {
   });
 
   final Profile profile;
-  final int? followers;
-  final int? following;
+
+  /// Nombre d'amis (abonnement réciproque, voir migration 0026) — `null`
+  /// tant que non chargé, masqué dans ce cas.
+  final int? friends;
   final Widget actionButton;
   final Widget? impactSummary;
 
@@ -96,18 +97,12 @@ class ProfileContent extends StatelessWidget {
                             value: '$eventsJoined',
                             label: eventsJoined == 1 ? 'campagne' : 'campagnes'),
                       ],
-                      if (following != null) ...[
+                      if (friends != null) ...[
                         const SizedBox(width: AppSpacing.lg),
                         GestureDetector(
-                          onTap: () => context.push('/users/${profile.id}/following'),
-                          child: _Stat(value: '$following', label: 'abonnements'),
-                        ),
-                      ],
-                      if (followers != null) ...[
-                        const SizedBox(width: AppSpacing.lg),
-                        GestureDetector(
-                          onTap: () => context.push('/users/${profile.id}/followers'),
-                          child: _Stat(value: '$followers', label: 'abonnés'),
+                          onTap: () => context.push('/users/${profile.id}/friends'),
+                          child: _Stat(
+                              value: '$friends', label: friends == 1 ? 'ami' : 'amis'),
                         ),
                       ],
                     ],

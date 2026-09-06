@@ -3,12 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/app_exception.dart';
 import '../domain/profile.dart';
 
-class FollowCounts {
-  const FollowCounts({required this.followers, required this.following});
-  final int followers;
-  final int following;
-}
-
 const _followListPageSize = 20;
 
 class FollowRepository {
@@ -16,33 +10,10 @@ class FollowRepository {
 
   final SupabaseClient _client;
 
-  /// Utilisateurs qui suivent [profileId], triés du plus récent abonné au
-  /// plus ancien.
-  Future<List<({Profile profile, DateTime followedAt})>> fetchFollowers({
-    required String profileId,
-    DateTime? before,
-  }) async {
-    try {
-      var query = _client
-          .from('follows')
-          .select('created_at, profiles!follows_follower_id_fkey(*)')
-          .eq('following_id', profileId);
-
-      if (before != null) {
-        query = query.lt('created_at', before.toIso8601String());
-      }
-
-      final data =
-          await query.order('created_at', ascending: false).limit(_followListPageSize);
-      return _mapRows(data as List);
-    } catch (_) {
-      throw const AppException('Impossible de charger les abonnés.');
-    }
-  }
-
-  /// Utilisateurs que [profileId] suit, triés du plus récemment suivi au
-  /// plus ancien.
-  Future<List<({Profile profile, DateTime followedAt})>> fetchFollowing({
+  /// Amis de [profileId] (abonnement toujours réciproque depuis la migration
+  /// 0026 — "follower"/"following" désignent donc la même relation), triés
+  /// du plus récent au plus ancien.
+  Future<List<({Profile profile, DateTime followedAt})>> fetchFriends({
     required String profileId,
     DateTime? before,
   }) async {
@@ -60,7 +31,7 @@ class FollowRepository {
           await query.order('created_at', ascending: false).limit(_followListPageSize);
       return _mapRows(data as List);
     } catch (_) {
-      throw const AppException('Impossible de charger les abonnements.');
+      throw const AppException('Impossible de charger les amis.');
     }
   }
 
@@ -74,16 +45,8 @@ class FollowRepository {
     ];
   }
 
-  Future<FollowCounts> getCounts(String profileId) async {
-    final followers = await _client
-        .from('follows')
-        .count(CountOption.exact)
-        .eq('following_id', profileId);
-    final following = await _client
-        .from('follows')
-        .count(CountOption.exact)
-        .eq('follower_id', profileId);
-    return FollowCounts(followers: followers, following: following);
+  Future<int> getFriendCount(String profileId) {
+    return _client.from('follows').count(CountOption.exact).eq('follower_id', profileId);
   }
 
   Future<bool> isFollowing({

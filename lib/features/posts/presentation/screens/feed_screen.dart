@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../messaging/presentation/providers/messaging_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../data/post_repository.dart';
 import '../providers/feed_provider.dart';
@@ -16,6 +17,7 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
+    final unreadConversations = ref.watch(unreadConversationsCountProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return DefaultTabController(
@@ -34,6 +36,15 @@ class FeedScreen extends ConsumerWidget {
               onPressed: () => context.push('/search'),
               tooltip: 'Rechercher',
               icon: const Icon(Icons.search),
+            ),
+            IconButton(
+              onPressed: () => context.push('/messages'),
+              tooltip: 'Messages',
+              icon: Badge(
+                label: Text('$unreadConversations'),
+                isLabelVisible: unreadConversations > 0,
+                child: const Icon(Icons.chat_bubble_outline),
+              ),
             ),
             IconButton(
               onPressed: () => context.push('/notifications'),

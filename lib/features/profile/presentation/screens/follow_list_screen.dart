@@ -7,10 +7,9 @@ import '../../../../shared/widgets/profile_list_tile.dart';
 import '../providers/follow_provider.dart';
 
 class FollowListScreen extends ConsumerStatefulWidget {
-  const FollowListScreen({super.key, required this.profileId, required this.type});
+  const FollowListScreen({super.key, required this.profileId});
 
   final String profileId;
-  final FollowListType type;
 
   @override
   ConsumerState<FollowListScreen> createState() => _FollowListScreenState();
@@ -19,15 +18,13 @@ class FollowListScreen extends ConsumerStatefulWidget {
 class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   final _scrollController = ScrollController();
 
-  FollowListKey get _key => (type: widget.type, profileId: widget.profileId);
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >
           _scrollController.position.maxScrollExtent - 200) {
-        ref.read(followListProvider(_key).notifier).loadMore();
+        ref.read(followListProvider(widget.profileId).notifier).loadMore();
       }
     });
   }
@@ -40,12 +37,10 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(followListProvider(_key));
-    final title =
-        widget.type == FollowListType.followers ? 'Abonnés' : 'Abonnements';
+    final state = ref.watch(followListProvider(widget.profileId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: const Text('Amis')),
       body: Builder(
         builder: (context) {
           if (state.isLoading) {
@@ -55,11 +50,9 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
             return Center(child: Text(state.error.toString()));
           }
           if (state.profiles.isEmpty) {
-            final message = widget.type == FollowListType.followers
-                ? "Aucun abonné pour l'instant."
-                : "Ne suit encore personne.";
-            return Center(
-              child: Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+            return const Center(
+              child: Text("Pas encore d'amis.",
+                  style: TextStyle(color: AppColors.textSecondary)),
             );
           }
           return ListView.separated(

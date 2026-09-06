@@ -9,9 +9,9 @@ final followRepositoryProvider = Provider<FollowRepository>((ref) {
   return FollowRepository(SupabaseService.client);
 });
 
-final followCountsProvider =
-    FutureProvider.autoDispose.family<FollowCounts, String>((ref, profileId) {
-  return ref.read(followRepositoryProvider).getCounts(profileId);
+final friendCountProvider =
+    FutureProvider.autoDispose.family<int, String>((ref, profileId) {
+  return ref.read(followRepositoryProvider).getFriendCount(profileId);
 });
 
 final isFollowingProvider =
@@ -44,14 +44,12 @@ class FollowController extends AutoDisposeAsyncNotifier<void> {
     });
     if (!state.hasError) {
       ref.invalidate(isFollowingProvider(targetUserId));
-      ref.invalidate(followCountsProvider(targetUserId));
-      ref.invalidate(followCountsProvider(userId));
+      ref.invalidate(friendCountProvider(targetUserId));
+      ref.invalidate(friendCountProvider(userId));
     }
     return !state.hasError;
   }
 }
-
-enum FollowListType { followers, following }
 
 class FollowListState {
   const FollowListState({
@@ -86,25 +84,20 @@ class FollowListState {
   }
 }
 
-typedef FollowListKey = ({FollowListType type, String profileId});
-
 final followListProvider = NotifierProvider.autoDispose
-    .family<FollowListNotifier, FollowListState, FollowListKey>(FollowListNotifier.new);
+    .family<FollowListNotifier, FollowListState, String>(FollowListNotifier.new);
 
-class FollowListNotifier extends AutoDisposeFamilyNotifier<FollowListState, FollowListKey> {
+class FollowListNotifier extends AutoDisposeFamilyNotifier<FollowListState, String> {
   DateTime? _cursor;
 
   @override
-  FollowListState build(FollowListKey arg) {
+  FollowListState build(String arg) {
     Future.microtask(refresh);
     return const FollowListState(isLoading: true);
   }
 
   Future<List<({Profile profile, DateTime followedAt})>> _fetch({DateTime? before}) {
-    final repo = ref.read(followRepositoryProvider);
-    return arg.type == FollowListType.followers
-        ? repo.fetchFollowers(profileId: arg.profileId, before: before)
-        : repo.fetchFollowing(profileId: arg.profileId, before: before);
+    return ref.read(followRepositoryProvider).fetchFriends(profileId: arg, before: before);
   }
 
   Future<void> refresh() async {
