@@ -107,38 +107,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: _submit,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      child: Text(l10n.orContinueWith,
-                          style: Theme.of(context).textTheme.bodySmall),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.g_mobiledata, size: 28),
-                        label: Text(l10n.continueWithGoogle),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.apple),
-                        label: Text(l10n.continueWithApple),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
                 Center(
                   child: TextButton(
                     onPressed: () => context.push(AppRoutes.register),

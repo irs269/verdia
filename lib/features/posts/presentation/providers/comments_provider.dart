@@ -38,6 +38,14 @@ class CommentsState {
   }
 }
 
+/// Signal Realtime "un commentaire a été ajouté/supprimé" pour un post donné
+/// (migration 0014) — voir [PostRepository.streamCommentsChanged] pour la
+/// raison de ne pas en tirer directement les commentaires.
+final commentsChangedProvider =
+    StreamProvider.autoDispose.family<void, String>((ref, postId) {
+  return ref.read(postRepositoryProvider).streamCommentsChanged(postId);
+});
+
 final commentsProvider = NotifierProvider.autoDispose
     .family<CommentsNotifier, CommentsState, String>(CommentsNotifier.new);
 
@@ -45,6 +53,9 @@ class CommentsNotifier extends AutoDisposeFamilyNotifier<CommentsState, String> 
   @override
   CommentsState build(String arg) {
     Future.microtask(refresh);
+    ref.listen(commentsChangedProvider(arg), (_, next) {
+      if (next.hasValue) refresh();
+    });
     return const CommentsState(isLoading: true);
   }
 

@@ -22,7 +22,7 @@ const _postSelect = '''
   comments(count),
   actions(
     id, title, description, quantity, quantity_unit, participants_count,
-    city, country, occurred_at, status,
+    city, country, occurred_at, status, created_at,
     action_categories(id, code, label, icon, color),
     impact_points(points)
   )
@@ -184,6 +184,60 @@ class PostRepository {
     } catch (_) {
       throw const AppException('Impossible de rechercher les publications.');
     }
+  }
+
+  /// `post_media`/`likes`/`comments`/`saved_posts` partent en cascade (voir
+  /// les FKs de la migration 0003) ; les fichiers du bucket `post-media` ne
+  /// sont eux jamais nettoyés automatiquement, limitation connue et acceptée
+  /// pour ce MVP.
+  Future<void> deletePost(String postId) async {
+    try {
+      await _client.from('posts').delete().eq('id', postId);
+    } catch (_) {
+      throw const AppException('La suppression a échoué.');
+    }
+  }
+
+  Future<void> updatePost(String postId, String content) async {
+    try {
+      await _client.from('posts').update({'content': content}).eq('id', postId);
+    } catch (_) {
+      throw const AppException('La modification a échoué.');
+    }
+  }
+
+  /// Compteurs de likes/commentaires en direct, tous posts confondus (migration
+  /// 0014). Les payloads Realtime de Supabase ne contiennent jamais de jointure
+  /// (`profiles`, ...), seulement les colonnes brutes de la table — inutile
+  /// pour reconstruire un [Post]/[Comment] complet, mais suffisant pour
+  /// recompter par `post_id` et mettre à jour les compteurs déjà affichés.
+  Stream<Map<String, int>> streamLikeCounts() {
+    return _client.from('likes').stream(primaryKey: ['id']).map(_countByPostId);
+  }
+
+  Stream<Map<String, int>> streamCommentCounts() {
+    return _client.from('comments').stream(primaryKey: ['id']).map(_countByPostId);
+  }
+
+  Map<String, int> _countByPostId(List<Map<String, dynamic>> rows) {
+    final counts = <String, int>{};
+    for (final row in rows) {
+      final postId = row['post_id'] as String;
+      counts[postId] = (counts[postId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Signal Realtime "quelque chose a changé" pour les commentaires d'un post
+  /// donné : le payload n'ayant pas la jointure `profiles` nécessaire à
+  /// [Comment.fromMap], on l'utilise juste pour déclencher un rafraîchissement
+  /// via [fetchComments] (qui, lui, a la jointure complète).
+  Stream<void> streamCommentsChanged(String postId) {
+    return _client
+        .from('comments')
+        .stream(primaryKey: ['id'])
+        .eq('post_id', postId)
+        .map((_) {});
   }
 
   Future<void> createPost({

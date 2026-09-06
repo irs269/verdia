@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,10 +13,15 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../domain/event.dart';
 import '../providers/event_provider.dart';
 
+/// Écran de création ET de modification : passer [existing] bascule en mode
+/// édition (préremplissage, appel à `update()` au lieu de `publish()`).
 class CreateEventScreen extends ConsumerStatefulWidget {
-  const CreateEventScreen({super.key});
+  const CreateEventScreen({super.key, this.existing});
+
+  final Event? existing;
 
   @override
   ConsumerState<CreateEventScreen> createState() => _CreateEventScreenState();
@@ -23,15 +29,23 @@ class CreateEventScreen extends ConsumerStatefulWidget {
 
 class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _targetController = TextEditingController();
+  late final _titleController =
+      TextEditingController(text: widget.existing?.title);
+  late final _descriptionController =
+      TextEditingController(text: widget.existing?.description);
+  late final _cityController = TextEditingController(text: widget.existing?.city);
+  late final _targetController =
+      TextEditingController(text: widget.existing?.targetParticipants?.toString());
 
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
-  TimeOfDay _time = const TimeOfDay(hour: 8, minute: 0);
-  LatLng? _location;
-  Uint8List? _cover;
+  late DateTime _date = widget.existing?.startsAt ?? DateTime.now().add(const Duration(days: 1));
+  late TimeOfDay _time = widget.existing != null
+      ? TimeOfDay(hour: widget.existing!.startsAt.hour, minute: widget.existing!.startsAt.minute)
+      : const TimeOfDay(hour: 8, minute: 0);
+  late LatLng? _location =
+      widget.existing != null ? LatLng(widget.existing!.lat, widget.existing!.lng) : null;
+  Uint8List? _newCover;
+
+  bool get _isEditing => widget.existing != null;
 
   @override
   void dispose() {
@@ -70,7 +84,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     );
     if (image == null) return;
     final bytes = await image.readAsBytes();
-    setState(() => _cover = bytes);
+    setState(() => _newCover = bytes);
   }
 
   Future<void> _submit() async {
@@ -84,16 +98,29 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     FocusScope.of(context).unfocus();
 
     final startsAt = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
-    final success = await ref.read(createEventControllerProvider.notifier).publish(
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          lat: _location!.latitude,
-          lng: _location!.longitude,
-          city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
-          startsAt: startsAt,
-          targetParticipants: int.tryParse(_targetController.text),
-          coverBytes: _cover,
-        );
+    final notifier = ref.read(createEventControllerProvider.notifier);
+    final success = _isEditing
+        ? await notifier.updateEvent(
+            eventId: widget.existing!.id,
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            lat: _location!.latitude,
+            lng: _location!.longitude,
+            city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
+            startsAt: startsAt,
+            targetParticipants: int.tryParse(_targetController.text),
+            newCoverBytes: _newCover,
+          )
+        : await notifier.publish(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            lat: _location!.latitude,
+            lng: _location!.longitude,
+            city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
+            startsAt: startsAt,
+            targetParticipants: int.tryParse(_targetController.text),
+            coverBytes: _newCover,
+          );
     if (success && mounted) context.pop();
   }
 
@@ -110,7 +137,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Créer un événement')),
+      appBar: AppBar(title: Text(_isEditing ? "Modifier l'événement" : 'Créer un événement')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -128,13 +155,23 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       color: AppColors.surfaceMuted,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       border: Border.all(color: AppColors.border),
-                      image: _cover != null
-                          ? DecorationImage(image: MemoryImage(_cover!), fit: BoxFit.cover)
+                      image: _newCover != null
+                          ? DecorationImage(image: MemoryImage(_newCover!), fit: BoxFit.cover)
                           : null,
                     ),
-                    child: _cover == null
-                        ? const Icon(Icons.add_a_photo_outlined,
-                            color: AppColors.textSecondary, size: 32)
+                    child: _newCover == null
+                        ? (widget.existing?.coverUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                child: CachedNetworkImage(
+                                  imageUrl: widget.existing!.coverUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: 140,
+                                ),
+                              )
+                            : const Icon(Icons.add_a_photo_outlined,
+                                color: AppColors.textSecondary, size: 32))
                         : null,
                   ),
                 ),
@@ -189,7 +226,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 AppButton(
-                  label: "Créer l'événement",
+                  label: _isEditing ? 'Enregistrer' : "Créer l'événement",
                   isLoading: controllerState.isLoading,
                   onPressed: _submit,
                 ),

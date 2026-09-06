@@ -169,6 +169,8 @@ class _PostResults extends ConsumerWidget {
                 }
                 ref.invalidate(postSearchResultsProvider(query));
               },
+              onDelete: () => ref.invalidate(postSearchResultsProvider(query)),
+              onEdit: (_) => ref.invalidate(postSearchResultsProvider(query)),
             );
           },
         );

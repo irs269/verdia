@@ -115,6 +115,7 @@ class Post {
   }
 
   Post copyWith({
+    String? content,
     int? likeCount,
     int? commentCount,
     bool? isLikedByMe,
@@ -123,7 +124,7 @@ class Post {
     return Post(
       id: id,
       author: author,
-      content: content,
+      content: content ?? this.content,
       city: city,
       country: country,
       createdAt: createdAt,

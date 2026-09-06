@@ -1,29 +1,128 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../actions/domain/eco_action.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../moderation/domain/content_report.dart';
 import '../../../moderation/presentation/widgets/report_content_sheet.dart';
 import '../../domain/post.dart';
+import '../providers/feed_provider.dart';
 
-class PostCard extends StatelessWidget {
+class PostCard extends ConsumerWidget {
   const PostCard({
     super.key,
     required this.post,
     required this.onToggleLike,
     required this.onToggleSave,
+    this.onDelete,
+    this.onEdit,
   });
 
   final Post post;
   final VoidCallback onToggleLike;
   final VoidCallback onToggleSave;
 
+  /// Appelé une fois la publication effectivement supprimée côté serveur,
+  /// pour que l'écran appelant la retire de sa propre liste. `null` désactive
+  /// silencieusement l'option "Supprimer" (ex. résultats de recherche
+  /// affichant le post d'un tiers).
+  final VoidCallback? onDelete;
+
+  /// Appelé avec le nouveau texte une fois la modification effectivement
+  /// enregistrée côté serveur, pour que l'écran appelant mette à jour sa
+  /// propre liste. `null` désactive silencieusement l'option "Modifier".
+  final void Function(String newContent)? onEdit;
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer cette publication ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Supprimer', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(postRepositoryProvider).deletePost(post.id);
+      onDelete?.call();
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Réservé aux publications texte libre : un post lié à une action affiche
+  /// `action.title`/`description`, jamais `content`, donc l'éditer n'aurait
+  /// aucun effet visible (voir [Post.action]/[PostCard.build]).
+  Future<void> _editPost(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: post.content);
+    final newContent = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier la publication'),
+        content: TextField(controller: controller, maxLines: 5, autofocus: true),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) Navigator.of(context).pop(text);
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+    if (newContent == null || newContent == post.content || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(postRepositoryProvider).updatePost(post.id, newContent);
+      onEdit?.call(newContent);
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Pas de page web publique par post (l'appli exige une connexion) : on
+  /// partage donc le texte de l'action/publication, pas un lien.
+  void _share(BuildContext context) {
+    final text = post.action != null
+        ? '🌱 ${post.author.fullName} a partagé une action VERDIA : '
+            '"${post.action!.title}"\n\n${post.action!.description}'
+        : '🌱 ${post.author.fullName} via VERDIA :\n\n${post.content}';
+
+    final box = context.findRenderObject() as RenderBox?;
+    final origin =
+        box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
+    Share.share(text, subject: 'VERDIA', sharePositionOrigin: origin);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isMine = ref.watch(currentUserProvider)?.id == post.author.id;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -81,11 +180,24 @@ class PostCard extends StatelessWidget {
                         targetType: ReportTargetType.post,
                         targetId: post.id,
                       );
+                    } else if (value == 'delete') {
+                      _confirmDelete(context, ref);
+                    } else if (value == 'edit') {
+                      _editPost(context, ref);
                     }
                   },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'report', child: Text('Signaler')),
-                  ],
+                  itemBuilder: (context) => isMine
+                      ? [
+                          if (post.action == null)
+                            const PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Supprimer', style: TextStyle(color: AppColors.error)),
+                          ),
+                        ]
+                      : const [
+                          PopupMenuItem(value: 'report', child: Text('Signaler')),
+                        ],
                 ),
               ],
             ),
@@ -154,9 +266,7 @@ class PostCard extends StatelessWidget {
                 icon: Icons.share_outlined,
                 color: AppColors.textSecondary,
                 semanticLabel: 'Partager',
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Bientôt disponible 🌱')),
-                ),
+                onTap: () => _share(context),
               ),
               const Spacer(),
               IconButton(

@@ -128,6 +128,39 @@ class CreateEventController extends AutoDisposeAsyncNotifier<void> {
     if (!state.hasError) ref.invalidate(upcomingEventsProvider);
     return !state.hasError;
   }
+
+  Future<bool> updateEvent({
+    required String eventId,
+    required String title,
+    required String description,
+    required double lat,
+    required double lng,
+    String? city,
+    String? country,
+    required DateTime startsAt,
+    int? targetParticipants,
+    Uint8List? newCoverBytes,
+  }) async {
+    final userId = ref.read(currentUserProvider)?.id;
+    if (userId == null) return false;
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref.read(eventRepositoryProvider).updateEvent(
+          eventId: eventId,
+          organizerId: userId,
+          title: title,
+          description: description,
+          lat: lat,
+          lng: lng,
+          city: city,
+          country: country,
+          startsAt: startsAt,
+          targetParticipants: targetParticipants,
+          newCoverBytes: newCoverBytes,
+        ));
+    if (!state.hasError) ref.invalidate(upcomingEventsProvider);
+    return !state.hasError;
+  }
 }
 
 final eventActionsControllerProvider =
@@ -149,5 +182,12 @@ class EventActionsController extends AutoDisposeAsyncNotifier<void> {
       return isCurrentlyJoined ? repo.leave(eventId, userId) : repo.join(eventId, userId);
     });
     if (!state.hasError) ref.invalidate(upcomingEventsProvider);
+  }
+
+  Future<bool> cancel(String eventId) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref.read(eventRepositoryProvider).cancelEvent(eventId));
+    if (!state.hasError) ref.invalidate(upcomingEventsProvider);
+    return !state.hasError;
   }
 }

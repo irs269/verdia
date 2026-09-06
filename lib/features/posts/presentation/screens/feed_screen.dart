@@ -167,6 +167,10 @@ class _FeedListState extends ConsumerState<_FeedList>
                 ref.read(feedProvider(widget.type).notifier).toggleLike(post.id),
             onToggleSave: () =>
                 ref.read(feedProvider(widget.type).notifier).toggleSave(post.id),
+            onDelete: () =>
+                ref.read(feedProvider(widget.type).notifier).removePost(post.id),
+            onEdit: (newContent) =>
+                ref.read(feedProvider(widget.type).notifier).editPost(post.id, newContent),
           );
         },
       ),

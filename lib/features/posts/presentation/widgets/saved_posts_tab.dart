@@ -86,6 +86,8 @@ class _SavedPostsTabState extends ConsumerState<SavedPostsTab> {
             post: post,
             onToggleLike: () => notifier.toggleLike(post.id),
             onToggleSave: () => notifier.toggleSave(post.id),
+            onDelete: () => notifier.removePost(post.id),
+            onEdit: (newContent) => notifier.editPost(post.id, newContent),
           );
         },
       ),

@@ -9,6 +9,18 @@ final postRepositoryProvider = Provider<PostRepository>((ref) {
   return PostRepository(SupabaseService.client);
 });
 
+/// Compteurs de likes/commentaires en direct (migration 0014), partagés par
+/// toutes les listes de posts (fil, profil, enregistrés) : un seul flux
+/// Realtime sous-jacent par provider, quel que soit le nombre de notifiers qui
+/// l'écoutent.
+final likeCountsStreamProvider = StreamProvider.autoDispose<Map<String, int>>((ref) {
+  return ref.watch(postRepositoryProvider).streamLikeCounts();
+});
+
+final commentCountsStreamProvider = StreamProvider.autoDispose<Map<String, int>>((ref) {
+  return ref.watch(postRepositoryProvider).streamCommentCounts();
+});
+
 class UserPostsState {
   const UserPostsState({
     this.posts = const [],
@@ -50,7 +62,27 @@ class UserPostsNotifier extends AutoDisposeFamilyNotifier<UserPostsState, String
   UserPostsState build(String arg) {
     ref.watch(currentUserProvider);
     Future.microtask(refresh);
+    ref.listen(likeCountsStreamProvider, (_, next) {
+      next.whenData(_applyLikeCounts);
+    });
+    ref.listen(commentCountsStreamProvider, (_, next) {
+      next.whenData(_applyCommentCounts);
+    });
     return const UserPostsState(isLoading: true);
+  }
+
+  void _applyLikeCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(likeCount: counts[p.id]) else p,
+    ]);
+  }
+
+  void _applyCommentCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(commentCount: counts[p.id]) else p,
+    ]);
   }
 
   String? get _userId => ref.read(currentUserProvider)?.id;
@@ -130,6 +162,19 @@ class UserPostsNotifier extends AutoDisposeFamilyNotifier<UserPostsState, String
     }
   }
 
+  /// Retire un post de la liste après suppression réussie côté serveur (voir
+  /// [PostCard], qui effectue l'appel réseau lui-même).
+  void removePost(String postId) {
+    state = state.copyWith(posts: [for (final p in state.posts) if (p.id != postId) p]);
+  }
+
+  /// Idem pour une modification réussie (voir [PostCard._editPost]).
+  void editPost(String postId, String newContent) {
+    final index = state.posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+    _replacePost(state.posts[index].copyWith(content: newContent));
+  }
+
   void _replacePost(Post updated) {
     state = state.copyWith(
       posts: [
@@ -149,7 +194,27 @@ class SavedPostsNotifier extends AutoDisposeNotifier<UserPostsState> {
   UserPostsState build() {
     ref.watch(currentUserProvider);
     Future.microtask(refresh);
+    ref.listen(likeCountsStreamProvider, (_, next) {
+      next.whenData(_applyLikeCounts);
+    });
+    ref.listen(commentCountsStreamProvider, (_, next) {
+      next.whenData(_applyCommentCounts);
+    });
     return const UserPostsState(isLoading: true);
+  }
+
+  void _applyLikeCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(likeCount: counts[p.id]) else p,
+    ]);
+  }
+
+  void _applyCommentCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(commentCount: counts[p.id]) else p,
+    ]);
   }
 
   Future<void> refresh() async {
@@ -228,6 +293,19 @@ class SavedPostsNotifier extends AutoDisposeNotifier<UserPostsState> {
     }
   }
 
+  /// Retire un post de la liste après suppression réussie côté serveur (voir
+  /// [PostCard], qui effectue l'appel réseau lui-même).
+  void removePost(String postId) {
+    state = state.copyWith(posts: [for (final p in state.posts) if (p.id != postId) p]);
+  }
+
+  /// Idem pour une modification réussie (voir [PostCard._editPost]).
+  void editPost(String postId, String newContent) {
+    final index = state.posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+    _replacePost(state.posts[index].copyWith(content: newContent));
+  }
+
   void _replacePost(Post updated) {
     state = state.copyWith(
       posts: [
@@ -281,7 +359,27 @@ class FeedNotifier extends FamilyNotifier<FeedState, FeedType> {
     // isLikedByMe/isSavedByMe du compte précédent.
     ref.watch(currentUserProvider);
     Future.microtask(refresh);
+    ref.listen(likeCountsStreamProvider, (_, next) {
+      next.whenData(_applyLikeCounts);
+    });
+    ref.listen(commentCountsStreamProvider, (_, next) {
+      next.whenData(_applyCommentCounts);
+    });
     return const FeedState(isLoading: true);
+  }
+
+  void _applyLikeCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(likeCount: counts[p.id]) else p,
+    ]);
+  }
+
+  void _applyCommentCounts(Map<String, int> counts) {
+    state = state.copyWith(posts: [
+      for (final p in state.posts)
+        if (counts.containsKey(p.id)) p.copyWith(commentCount: counts[p.id]) else p,
+    ]);
   }
 
   String? get _userId => ref.read(currentUserProvider)?.id;
@@ -368,6 +466,19 @@ class FeedNotifier extends FamilyNotifier<FeedState, FeedType> {
     if (index == -1) return;
     final post = state.posts[index];
     _replacePost(post.copyWith(commentCount: post.commentCount + delta));
+  }
+
+  /// Retire un post de la liste après suppression réussie côté serveur (voir
+  /// [PostCard], qui effectue l'appel réseau lui-même).
+  void removePost(String postId) {
+    state = state.copyWith(posts: [for (final p in state.posts) if (p.id != postId) p]);
+  }
+
+  /// Idem pour une modification réussie (voir [PostCard._editPost]).
+  void editPost(String postId, String newContent) {
+    final index = state.posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+    _replacePost(state.posts[index].copyWith(content: newContent));
   }
 
   void _replacePost(Post updated) {

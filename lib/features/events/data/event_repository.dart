@@ -113,6 +113,59 @@ class EventRepository {
     }
   }
 
+  /// La policy RLS "organizer can update" existe depuis la migration 0006 ;
+  /// seule cette méthode manquait côté client.
+  Future<void> updateEvent({
+    required String eventId,
+    required String organizerId,
+    required String title,
+    required String description,
+    required double lat,
+    required double lng,
+    String? city,
+    String? country,
+    required DateTime startsAt,
+    DateTime? endsAt,
+    int? targetParticipants,
+    Uint8List? newCoverBytes,
+  }) async {
+    try {
+      String? coverUrl;
+      if (newCoverBytes != null) {
+        final path = '$organizerId/${_uuid.v4()}.jpg';
+        await _client.storage.from('event-media').uploadBinary(
+              path,
+              newCoverBytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg'),
+            );
+        coverUrl = _client.storage.from('event-media').getPublicUrl(path);
+      }
+
+      await _client.from('events').update({
+        'title': title,
+        'description': description,
+        'lat': lat,
+        'lng': lng,
+        'city': city,
+        'country': country,
+        'starts_at': startsAt.toIso8601String(),
+        'ends_at': endsAt?.toIso8601String(),
+        'target_participants': targetParticipants,
+        if (coverUrl != null) 'cover_url': coverUrl,
+      }).eq('id', eventId);
+    } catch (_) {
+      throw const AppException("La modification de l'événement a échoué.");
+    }
+  }
+
+  Future<void> cancelEvent(String eventId) async {
+    try {
+      await _client.from('events').update({'status': 'cancelled'}).eq('id', eventId);
+    } catch (_) {
+      throw const AppException("L'annulation de l'événement a échoué.");
+    }
+  }
+
   Future<void> join(String eventId, String profileId) async {
     try {
       await _client

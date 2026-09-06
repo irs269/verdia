@@ -11,6 +11,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/events/domain/event.dart';
 import '../../features/events/presentation/screens/create_event_screen.dart';
 import '../../features/home/presentation/screens/home_shell.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
@@ -141,7 +142,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.createEvent,
-        builder: (_, _) => const CreateEventScreen(),
+        builder: (_, state) => CreateEventScreen(existing: state.extra as Event?),
       ),
       GoRoute(
         path: AppRoutes.createChallenge,
