@@ -8,7 +8,7 @@ import '../domain/action_category.dart';
 import '../domain/eco_action.dart';
 
 const _actionSelect = '''
-  id, title, description, quantity, quantity_unit, participants_count,
+  id, author_id, title, description, quantity, quantity_unit, participants_count,
   city, country, lat, lng, occurred_at, status, created_at, location_verified,
   action_categories(id, code, label, icon, color),
   impact_points(points)
@@ -68,6 +68,24 @@ class ActionRepository {
     }
   }
 
+  /// Réservé aux modérateurs (RLS "Actions are viewable by everyone" reste
+  /// vraie côté lecture, mais seul un modérateur voit ce filtre exploité —
+  /// migration 0017) : actions en attente de validation.
+  Future<List<EcoAction>> fetchPendingActions() async {
+    try {
+      final data = await _client
+          .from('actions')
+          .select(_actionSelect)
+          .eq('status', 'pending')
+          .order('created_at');
+      return (data as List)
+          .map((e) => EcoAction.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Nombre d'actions vérifiées par catégorie pour un utilisateur — utilisé
   /// pour le résumé d'impact du profil.
   Future<Map<String, int>> fetchUserActionCounts(String profileId) async {
@@ -89,10 +107,10 @@ class ActionRepository {
   }
 
   /// Crée l'action, l'auteur comme premier participant, la publication
-  /// associée et ses médias. Le statut est 'verified' par défaut pour ce
-  /// MVP (validation simple) — le trigger serveur attribue les points ; un
-  /// modérateur peut ensuite le faire passer à 'rejected' via
-  /// [moderateAction]. [avantBytes]/[apresBytes] sont taguées `label` dans
+  /// associée et ses médias. Le statut par défaut est 'pending' (migration
+  /// 0017) : les points ne sont crédités qu'une fois qu'un modérateur la
+  /// fait passer à 'verified' via [moderateAction]. [avantBytes]/[apresBytes]
+  /// sont taguées `label` dans
   /// `post_media` (migration 0015) et uploadées avant la galerie générale
   /// pour que leur `position` (0, puis 1) soit stable.
   Future<void> createAction({
@@ -184,11 +202,15 @@ class ActionRepository {
     }
   }
 
-  /// Réservé aux modérateurs (policy "Moderators can moderate any action",
-  /// migration 0015) : fait évoluer le statut d'une action qui n'est pas la
-  /// leur. Le trigger `revoke_action_points` retire automatiquement les
-  /// points déjà crédités si le nouveau statut est 'rejected'. `notes` est
-  /// journalisé dans `moderation_actions` pour traçabilité.
+  /// Réservé aux modérateurs — passe par la fonction RPC `moderate_action`
+  /// (migration 0018), seule capable d'écrire `actions.status` : la colonne
+  /// est verrouillée pour `authenticated` depuis la migration 0009
+  /// (`revoke update (status)`, Phase 8), y compris pour un modérateur, ce
+  /// rôle n'existant qu'au niveau applicatif et non comme rôle Postgres
+  /// séparé — un simple `.update()` échoue toujours avec 42501. Le trigger
+  /// `revoke_action_points` retire automatiquement les points déjà crédités
+  /// si le nouveau statut est 'rejected'. `notes` est journalisé dans
+  /// `moderation_actions` pour traçabilité.
   Future<void> moderateAction({
     required String actionId,
     required String moderatorId,
@@ -197,7 +219,10 @@ class ActionRepository {
     String? reportId,
   }) async {
     try {
-      await _client.from('actions').update({'status': status}).eq('id', actionId);
+      await _client.rpc('moderate_action', params: {
+        'p_action_id': actionId,
+        'p_new_status': status,
+      });
       if (reportId != null) {
         await _client.from('moderation_actions').insert({
           'report_id': reportId,

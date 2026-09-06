@@ -204,7 +204,15 @@ class PostCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (post.action != null) ...[
-            _CategoryBadge(action: post.action!),
+            Row(
+              children: [
+                _CategoryBadge(action: post.action!),
+                if (post.action!.status != 'verified') ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  _ActionStatusBadge(status: post.action!.status),
+                ],
+              ],
+            ),
             const SizedBox(height: AppSpacing.sm),
             Text(post.action!.title,
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
@@ -294,6 +302,30 @@ class PostCard extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours} h';
     if (diff.inDays < 7) return '${diff.inDays} j';
     return DateFormat('d MMM', 'fr_FR').format(date);
+  }
+}
+
+/// Une action nouvellement créée est 'pending' jusqu'à validation par un
+/// modérateur (migration 0017) — les points ne s'affichent qu'une fois
+/// 'verified'. Masqué pour les actions déjà vérifiées (cas normal).
+class _ActionStatusBadge extends StatelessWidget {
+  const _ActionStatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPending = status == 'pending';
+    final color = isPending ? AppColors.warning : AppColors.error;
+    final label = isPending ? '⏳ En attente de validation' : '✕ Rejetée';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+    );
   }
 }
 

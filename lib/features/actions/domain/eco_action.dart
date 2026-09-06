@@ -3,6 +3,7 @@ import 'action_category.dart';
 class EcoAction {
   const EcoAction({
     required this.id,
+    required this.authorId,
     required this.category,
     required this.title,
     required this.description,
@@ -24,6 +25,7 @@ class EcoAction {
     final impactPointsList = map['impact_points'] as List?;
     return EcoAction(
       id: map['id'] as String,
+      authorId: map['author_id'] as String,
       category: ActionCategory.fromMap(map['action_categories'] as Map<String, dynamic>),
       title: map['title'] as String,
       description: map['description'] as String,
@@ -45,6 +47,7 @@ class EcoAction {
   }
 
   final String id;
+  final String authorId;
   final ActionCategory category;
   final String title;
   final String description;

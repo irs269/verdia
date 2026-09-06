@@ -33,9 +33,10 @@ Post _fixturePost({
   );
 }
 
-EcoAction _fixtureAction() {
+EcoAction _fixtureAction({String status = 'verified'}) {
   return EcoAction(
     id: 'action-1',
+    authorId: 'author-1',
     category: const ActionCategory(
       id: 'cat-1',
       code: 'nettoyage',
@@ -47,8 +48,8 @@ EcoAction _fixtureAction() {
     description: 'Grand nettoyage communautaire',
     participantsCount: 8,
     occurredAt: DateTime.now(),
-    status: 'verified',
-    impactPoints: 30,
+    status: status,
+    impactPoints: status == 'verified' ? 30 : null,
     createdAt: DateTime.now(),
   );
 }
@@ -100,6 +101,45 @@ void main() {
 
     expect(find.textContaining('Nettoyage'), findsWidgets);
     expect(find.textContaining('+30 points'), findsOneWidget);
+  });
+
+  testWidgets('shows a "pending" badge and no points for an unverified action',
+      (tester) async {
+    await tester.pumpWidget(_wrap(
+      PostCard(
+        post: _fixturePost(action: _fixtureAction(status: 'pending')),
+        onToggleLike: () {},
+        onToggleSave: () {},
+      ),
+    ));
+
+    expect(find.textContaining('attente'), findsOneWidget);
+    expect(find.textContaining('points'), findsNothing);
+  });
+
+  testWidgets('shows a "rejected" badge for a rejected action', (tester) async {
+    await tester.pumpWidget(_wrap(
+      PostCard(
+        post: _fixturePost(action: _fixtureAction(status: 'rejected')),
+        onToggleLike: () {},
+        onToggleSave: () {},
+      ),
+    ));
+
+    expect(find.textContaining('Rejetée'), findsOneWidget);
+  });
+
+  testWidgets('shows no status badge for a verified action', (tester) async {
+    await tester.pumpWidget(_wrap(
+      PostCard(
+        post: _fixturePost(action: _fixtureAction()),
+        onToggleLike: () {},
+        onToggleSave: () {},
+      ),
+    ));
+
+    expect(find.textContaining('attente'), findsNothing);
+    expect(find.textContaining('Rejetée'), findsNothing);
   });
 
   testWidgets('shows a filled heart when already liked, outline otherwise',

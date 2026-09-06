@@ -17,6 +17,7 @@ Map<String, dynamic> _actionMap({
 }) {
   return {
     'id': 'action-1',
+    'author_id': 'author-1',
     'title': 'Plantation au jardin public',
     'description': "Nous avons planté 15 arbres avec l'école primaire",
     'quantity': quantity,

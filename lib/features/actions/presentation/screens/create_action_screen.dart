@@ -182,7 +182,14 @@ class _CreateActionScreenState extends ConsumerState<CreateActionScreen> {
           apresBytes: _apresPhoto,
           mediaBytes: _picked,
         );
-    if (success && mounted) context.pop();
+    if (!success || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    context.pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Action publiée, en attente de validation par un modérateur."),
+      ),
+    );
   }
 
   String _quantityUnitFor(String categoryCode) {
@@ -738,6 +745,11 @@ class _PreviewStep extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text('⭐ +$estimatedPoints points d\'impact estimés',
               style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          const Text(
+            'Ces points seront crédités une fois ton action validée par un modérateur.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
         ],
       ),
     );

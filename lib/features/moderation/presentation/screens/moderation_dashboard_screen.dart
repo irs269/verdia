@@ -175,71 +175,146 @@ class _ActionsTab extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final success = await ref.read(moderationControllerProvider.notifier).rejectAction(action.id);
+    final success = await ref
+        .read(moderationControllerProvider.notifier)
+        .rejectAction(action.id, authorId: action.authorId);
     if (!context.mounted) return;
     messenger.showSnackBar(
       SnackBar(content: Text(success ? 'Action rejetée.' : 'La modération a échoué.')),
     );
   }
 
+  Future<void> _approve(BuildContext context, WidgetRef ref, EcoAction action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await ref
+        .read(moderationControllerProvider.notifier)
+        .approveAction(action.id, authorId: action.authorId);
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(success ? 'Action validée, points crédités.' : 'La modération a échoué.')),
+    );
+  }
+
+  Widget _dateGapWarning(EcoAction action) {
+    if (_dateGap(action) <= 7) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, size: 13, color: AppColors.error),
+          const SizedBox(width: 3),
+          Text(
+            'Déclarée ${_dateGap(action)} j avant sa publication — jamais recoupée',
+            style: const TextStyle(color: AppColors.error, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(pendingActionsProvider);
     final actionsState = ref.watch(actionsListProvider);
 
-    if (actionsState.isLoading) {
+    if (actionsState.isLoading || pendingAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (actionsState.actions.isEmpty) {
+
+    final pending = pendingAsync.valueOrNull ?? [];
+    final verified = actionsState.actions;
+
+    if (pending.isEmpty && verified.isEmpty) {
       return const Center(
         child: Text('Aucune action publiée.', style: TextStyle(color: AppColors.textSecondary)),
       );
     }
-    return ListView.separated(
+
+    return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: actionsState.actions.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, index) {
-        final action = actionsState.actions[index];
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(action.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text('${action.category.label} · ${DateFormat('d MMM', 'fr_FR').format(action.occurredAt)}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                    if (_dateGap(action) > 7) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded, size: 13, color: AppColors.error),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Déclarée ${_dateGap(action)} j avant sa publication — jamais recoupée',
-                            style: const TextStyle(color: AppColors.error, fontSize: 11),
-                          ),
-                        ],
+      children: [
+        if (pending.isNotEmpty) ...[
+          Text('En attente de validation (${pending.length})',
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.sm),
+          for (final action in pending) ...[
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.warning),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(action.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    '${action.category.label} · ${DateFormat('d MMM HH:mm', 'fr_FR').format(action.occurredAt)}',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  _dateGapWarning(action),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _confirmReject(context, ref, action),
+                          child: const Text('Rejeter', style: TextStyle(color: AppColors.error)),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => _approve(context, ref, action),
+                          child: const Text('Valider'),
+                        ),
                       ),
                     ],
-                  ],
-                ),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => _confirmReject(context, ref, action),
-                child: const Text('Rejeter', style: TextStyle(color: AppColors.error)),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        if (verified.isNotEmpty) ...[
+          Text('Vérifiées (${verified.length})', style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.sm),
+          for (final action in verified)
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.border),
               ),
-            ],
-          ),
-        );
-      },
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(action.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(
+                          '${action.category.label} · ${DateFormat('d MMM', 'fr_FR').format(action.occurredAt)}',
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                        _dateGapWarning(action),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _confirmReject(context, ref, action),
+                    child: const Text('Rejeter', style: TextStyle(color: AppColors.error)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

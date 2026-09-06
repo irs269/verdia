@@ -21,7 +21,7 @@ const _postSelect = '''
   likes(count),
   comments(count),
   actions(
-    id, title, description, quantity, quantity_unit, participants_count,
+    id, author_id, title, description, quantity, quantity_unit, participants_count,
     city, country, occurred_at, status, created_at, location_verified,
     action_categories(id, code, label, icon, color),
     impact_points(points)
