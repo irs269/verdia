@@ -25,6 +25,11 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Profil'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.apartment_outlined),
+            tooltip: 'Organisations',
+            onPressed: () => context.push('/organizations'),
+          ),
+          IconButton(
             icon: const Icon(Icons.leaderboard_outlined),
             tooltip: 'Classement',
             onPressed: () => context.push('/leaderboard'),

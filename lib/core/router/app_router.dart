@@ -17,6 +17,8 @@ import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart'
 import '../../features/map/presentation/screens/location_picker_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/organizations/presentation/screens/organization_detail_screen.dart';
+import '../../features/organizations/presentation/screens/organizations_list_screen.dart';
 import '../../features/posts/presentation/screens/comments_screen.dart';
 import '../../features/posts/presentation/screens/feed_screen.dart';
 import '../../features/profile/domain/profile.dart';
@@ -53,6 +55,8 @@ abstract final class AppRoutes {
   static const createReport = '/reports/create';
   static const notifications = '/notifications';
   static const search = '/search';
+  static const organizations = '/organizations';
+  static const organizationDetail = '/organizations/:id';
 }
 
 final _authRoutes = {
@@ -158,6 +162,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.search,
         builder: (_, _) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.organizations,
+        builder: (_, _) => const OrganizationsListScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.organizationDetail,
+        builder: (_, state) =>
+            OrganizationDetailScreen(organizationId: state.pathParameters['id']!),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
