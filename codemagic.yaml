@@ -1,0 +1,32 @@
+workflows:
+  ios-build-check:
+    name: iOS - build check (sans signature)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      flutter: 3.44.8
+      xcode: latest
+      cocoapods: default
+      groups:
+        # À créer dans Codemagic > Teams > Environment variables : groupe
+        # "verdia_supabase" avec SUPABASE_URL et SUPABASE_ANON_KEY (cocher
+        # "Secure") — mêmes valeurs que dans le .env local, jamais commit.
+        - verdia_supabase
+    scripts:
+      - name: Générer le fichier .env
+        script: |
+          echo "SUPABASE_URL=$SUPABASE_URL" > .env
+          echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> .env
+      - name: Récupérer les dépendances
+        script: flutter pub get
+      - name: Analyser le code
+        script: flutter analyze
+      - name: Lancer les tests
+        script: flutter test
+      - name: Compiler pour iOS (non signé)
+        script: flutter build ios --release --no-codesign
+    # Pas d'artefact .ipa installable tant qu'il n'y a pas de compte Apple
+    # Developer (nécessaire pour signer l'app) — voir la mémoire du projet
+    # pour la suite une fois le compte créé : ajouter la signature
+    # automatique via l'intégration App Store Connect et un artefact .ipa
+    # ici pour distribution TestFlight/ad-hoc.

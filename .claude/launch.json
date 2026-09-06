@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "verdia-web",
+      "runtimeExecutable": "C:\\Users\\admin\\flutter\\bin\\flutter.bat",
+      "runtimeArgs": ["run", "-d", "web-server", "--web-port", "5567", "--web-hostname", "127.0.0.1"],
+      "port": 5567
+    }
+  ]
+}

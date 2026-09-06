@@ -1,0 +1,56 @@
+name: verdia
+description: "VERDIA — Partage ton action. Inspire. Agis."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Backend
+  supabase_flutter: ^2.9.0
+
+  # Env config
+  flutter_dotenv: ^5.2.1
+
+  # UI / assets
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+
+  # Media
+  image_picker: ^1.1.2
+  uuid: ^4.5.1
+
+  # Localization
+  intl: ^0.20.2
+
+  # Carte
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
